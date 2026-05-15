@@ -1,0 +1,22 @@
+{
+    "requestContext": {
+        "routeKey": "$default",
+        "messageId": "cqX14faioAMCK4w=",
+        "eventType": "MESSAGE",
+        "extendedRequestId": "cqX14HWmoAMECMw=",
+        "requestTime": "01/May/2026:01:48:59 +0000",
+        "messageDirection": "IN",
+        "stage": "dev",
+        "connectedAt": 1777600132587,
+        "requestTimeEpoch": 1777600139682,
+        "identity": {
+            "sourceIp": "71.246.228.152"
+        },
+        "requestId": "cqX14HWmoAMECMw=",
+        "domainName": "xprsabrelh.execute-api.us-east-1.amazonaws.com",
+        "connectionId": "cqX0xfXSoAMCK4w=",
+        "apiId": "xprsabrelh"
+    },
+    "body": "blablabla",
+    "isBase64Encoded": false
+}

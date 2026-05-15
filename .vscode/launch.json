@@ -1,0 +1,72 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Lambda handler",
+      "runtimeExecutable": "tsx",
+      "program": "${workspaceFolder}/resources/handlers/local-runner.ts",
+      "args": ["${input:handlerName}"],
+      "cwd": "${workspaceFolder}/resources"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Current TS File",
+      "runtimeArgs": [
+        "-r",
+        "ts-node/register"
+      ],
+      "args": [
+        "${file}"
+      ],
+      "cwd": "${workspaceFolder}",
+      "internalConsoleOptions": "openOnSessionStart",
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
+    }, 
+    {
+      "type": "node",
+      "request": "launch" ,
+      "name": "Debug Current TS File (npx)",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "ts-node"
+      ],
+      "args": [
+        "${file}"
+      ],
+      "cwd": "${workspaceFolder}",
+      "internalConsoleOptions": "openOnSessionStart",
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Current TS File (tsx)",
+      "runtimeExecutable": "tsx",
+      "args": [
+        "${file}"
+      ],
+      "cwd": "${workspaceFolder}",
+      "internalConsoleOptions": "openOnSessionStart",
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
+    }
+  ],
+  
+  "inputs": [
+    {
+        "id": "handlerName",
+        "type": "pickString",
+        "description": "handler to run",
+        "default": "basic-websock",
+        "options": ["basic-websock", "other-websock"]
+    }
+  ]
+}
