@@ -2,7 +2,7 @@
   "name": "monster-draft-public-app_infra",
   "version": "0.1.0",
   "bin": {
-    "monster-draft-public-app_infra": "bin/monster-draft-public-app_infra.js"
+    "monster-draft-public-app_infra": "src/monster-draft-public-app_infra.js"
   },
   "scripts": {
     "build": "tsc",

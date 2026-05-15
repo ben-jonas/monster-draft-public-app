@@ -1,5 +1,5 @@
 {
-  "app": "npx ts-node --prefer-ts-exts bin/monster-draft-public-app_infra.ts",
+  "app": "npx ts-node --prefer-ts-exts src/monster-draft-public-app_infra.ts",
   "watch": {
     "include": [
       "**"
