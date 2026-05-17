@@ -8,7 +8,6 @@ import org.monstercubedraft.crac.IdGeneratorResource;
 
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException;
-import software.amazon.awssdk.services.dynamodb.model.DynamoDbException;
 import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.ReturnValue;
 import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
@@ -25,6 +24,13 @@ public class DynamoDbCommandService {
     private final IdGeneratorResource idGeneratorResource;
     private final String connectionsTableName;
     private final String gameTableName;
+      
+    public sealed interface CommandResult
+    	permits CommandResult.Succeeded, CommandResult.FailedCondition {
+    	record Succeeded() implements CommandResult {}
+    	record FailedCondition(
+    			ConditionalCheckFailedException e) implements CommandResult {}
+    }
 
     public DynamoDbCommandService() {
         this(
@@ -38,18 +44,23 @@ public class DynamoDbCommandService {
                                   IdGeneratorResource idGeneratorResource,
                                   String connectionsTableName,
                                   String gameTableName) {
+    	Objects.requireNonNull(dynamoResource);
+    	Objects.requireNonNull(idGeneratorResource);
+    	Objects.requireNonNull(connectionsTableName);
+    	Objects.requireNonNull(gameTableName);
         this.dynamoResource = dynamoResource;
         this.idGeneratorResource = idGeneratorResource;
         this.connectionsTableName = connectionsTableName;
         this.gameTableName = gameTableName;
     }
 
-    public String connectToExistingSession(String wsConnectionId,
+    public CommandResult connectToExistingSession(String wsConnectionId,
                                            String gameId,
                                            String sessionId) {
         Objects.requireNonNull(wsConnectionId);
         Objects.requireNonNull(gameId);
         Objects.requireNonNull(sessionId);
+        
         UpdateItemRequest updateWsConnectionRequest = UpdateItemRequest.builder()
             .tableName(this.connectionsTableName)
             .key(Map.of(
@@ -65,46 +76,37 @@ public class DynamoDbCommandService {
             .build();
         try {
             UpdateItemResponse updateWsConnectionResponse = 
-            dynamoResource.getClient().updateItem(updateWsConnectionRequest);
+            		dynamoResource.getClient().updateItem(updateWsConnectionRequest);
             String oldWsConnectionId = 
                 updateWsConnectionResponse.attributes().get("wsConnectionId").s();
-            // TODO Attempt to disconnect the old connection in APIGW (best effort)
-            return "success";
-        } catch (ConditionalCheckFailedException conditionEx) {
-            // Currently our code doesn't care why the condition check fails. If we want to write
-            // and test different subcondition failures, we need to add
+            if (oldWsConnectionId != null) {
+            	// TODO Attempt to disconnect the old connection in APIGW (best effort)
+            }
+            return new CommandResult.Succeeded();
+        } catch (ConditionalCheckFailedException e) {
+        	return new CommandResult.FailedCondition(e);
+            // If we want to write and test different
+        	// subcondition failures, we need to add
             // ".returnValuesOnConditionCheckFailure(ReturnValuesOnConditionCheckFailure.ALL_OLD)"
             // to the UpdateItemRequest, then interrogate the thrown exception (e) for e.item().
-            return "failure";
         }
     }
 
-    public String connectToNewSession(String wsConnectionId, String gameId) {
+    public CommandResult connectToNewSession(String wsConnectionId, String gameId) {
+    	Objects.requireNonNull(wsConnectionId);
+    	Objects.requireNonNull(gameId);
         String sessionId = idGeneratorResource.generateSessionId();
-        String joinGameAttempt = attemptIncrementPlayerCount(gameId);
-
-        if (joinGameAttempt.equals("success")) {
-            // add session entry to connections
-            PutItemRequest addNewSessionEntry = PutItemRequest.builder()
-                .tableName(this.connectionsTableName)
-                .item(Map.of(
-                    "sessionId", AttributeValue.fromS(sessionId),
-                    "gameRef", AttributeValue.fromS(gameId),
-                    "wsConnectionId", AttributeValue.fromS(wsConnectionId)
-                ))
-                .build();
-            try {
-                dynamoResource.getClient().putItem(addNewSessionEntry);
-                return "success";
-            } catch (DynamoDbException dynamoEx) {
-                return "failure";
-            }
-        } else {
-            return "failure";
+        CommandResult joinGameAttempt = attemptIncrementPlayerCount(gameId);
+        switch (joinGameAttempt) {
+        case CommandResult.Succeeded _ -> {
+            return attemptNewSessionEntry(sessionId, gameId, wsConnectionId);
         }
+        case CommandResult.FailedCondition updatePlayerCountFailure -> {
+        	return updatePlayerCountFailure;
+        }}
     }
 
-    private String attemptIncrementPlayerCount(String gameId) {
+    private CommandResult attemptIncrementPlayerCount(String gameId) {
         UpdateItemRequest attemptIncrementPlayerCountRequest = UpdateItemRequest.builder()
             .tableName(this.gameTableName)
             .key(Map.of(
@@ -118,12 +120,30 @@ public class DynamoDbCommandService {
         try {
             dynamoResource.getClient().updateItem(attemptIncrementPlayerCountRequest);
         } catch (ConditionalCheckFailedException e) {
-            return "failure";
-        } catch (DynamoDbException dynamoEx) {
-            System.out.printf("Other exception: %s", dynamoEx.getMessage());
-            return "failure";
+            return new CommandResult.FailedCondition(e);
         }
-        return "success";
+        return new CommandResult.Succeeded();
+    }
+    
+    private CommandResult attemptNewSessionEntry(
+    		String sessionId, String gameId, String wsConnectionId) {
+    	PutItemRequest addNewSessionEntry = PutItemRequest.builder()
+            .tableName(this.connectionsTableName)
+            .item(Map.of(
+                "sessionId", AttributeValue.fromS(sessionId),
+                "gameRef", AttributeValue.fromS(gameId),
+                "wsConnectionId", AttributeValue.fromS(wsConnectionId)
+            ))
+            .conditionExpression("attribute_not_exists(gameRef)")
+            .build();
+        try {
+        	dynamoResource.getClient().putItem(addNewSessionEntry);
+            return new CommandResult.Succeeded();
+        } catch (ConditionalCheckFailedException e) {
+        	// TODO if this fails, we also need to use SQS to queue up a task to decrement
+        	// the gameRef's player count back down.
+        	return new CommandResult.FailedCondition(e);
+        }
     }
 
     public String disconnectUser(String wsConnectionId, Map<String, String> queryParams) {

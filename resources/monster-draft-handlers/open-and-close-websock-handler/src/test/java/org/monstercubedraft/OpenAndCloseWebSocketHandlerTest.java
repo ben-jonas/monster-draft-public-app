@@ -8,9 +8,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.monstercubedraft.DynamoDbCommandService.CommandResult;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2WebSocketEvent;
+
+import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException;
 
 import java.util.Map;
 
@@ -44,7 +47,7 @@ class OpenAndCloseWebSocketHandlerTest {
         when(eventRequestContext.getConnectionId()).thenReturn(WSCONNECTION_ID);
 
         when(dynamoDbCommandService.connectToNewSession(WSCONNECTION_ID, GAME_ID))
-            .thenReturn("success");
+            .thenReturn(new CommandResult.Succeeded());
         int statusCode = wsHandler.handleRequest(event, context).getStatusCode();
         assertEquals(200, statusCode);
     }
@@ -57,7 +60,8 @@ class OpenAndCloseWebSocketHandlerTest {
         when(eventRequestContext.getConnectionId()).thenReturn(WSCONNECTION_ID);
 
         when(dynamoDbCommandService.connectToNewSession(WSCONNECTION_ID, GAME_ID))
-            .thenReturn("failure");
+            .thenReturn(new CommandResult.FailedCondition(
+            		ConditionalCheckFailedException.builder().build()));
         int statusCode = wsHandler.handleRequest(event, context).getStatusCode();
         assertEquals(400, statusCode);
     }
@@ -71,13 +75,13 @@ class OpenAndCloseWebSocketHandlerTest {
 
         when(dynamoDbCommandService.connectToExistingSession(
             WSCONNECTION_ID, GAME_ID, SESSION_ID))
-            .thenReturn("success");
+            .thenReturn(new CommandResult.Succeeded());
         int statusCode = wsHandler.handleRequest(event, context).getStatusCode();
         assertEquals(200, statusCode);
     }
 
     @Test
-    void connectRoute_failedExistingSession_returns200() {
+    void connectRoute_failedExistingSession_returns400() {
         Map<String, String> qsParams = Map.of("game_id", GAME_ID, "session_id", SESSION_ID);
         when(event.getQueryStringParameters()).thenReturn(qsParams);
         when(eventRequestContext.getRouteKey()).thenReturn("$connect");
@@ -85,7 +89,7 @@ class OpenAndCloseWebSocketHandlerTest {
 
         when(dynamoDbCommandService.connectToExistingSession(
             WSCONNECTION_ID, GAME_ID, SESSION_ID))
-            .thenReturn("failure");
+        .thenReturn(new CommandResult.FailedCondition(ConditionalCheckFailedException.builder().build()));
         int statusCode = wsHandler.handleRequest(event, context).getStatusCode();
         assertEquals(400, statusCode);
     }
