@@ -4,5 +4,5 @@ import { MonsterDraftPublicAppInfraStack } from '../lib/monster-draft-public-app
 
 const app = new cdk.App();
 new MonsterDraftPublicAppInfraStack(app, 'MonsterDraftPublicAppInfraStack', {
-  env: { account: '556789079449', region: 'us-east-1' },
+    env: { account: '556789079449', region: 'us-east-1' },
 });

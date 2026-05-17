@@ -22,32 +22,32 @@ import software.amazon.awssdk.services.dynamodb.model.DescribeTableRequest;
 @ExtendWith(MockitoExtension.class)
 public class DynamoDbClientResourceTest {
 
-    DynamoDbClientResource dynamoRsrc;
-    @Mock DynamoDbClient mockDynamoClient;
-    @Mock Context<? extends Resource> mockCracContext;
+  DynamoDbClientResource dynamoRsrc;
+  @Mock DynamoDbClient mockDynamoClient;
+  @Mock Context<? extends Resource> mockCracContext;
 
-    @BeforeEach
-    void setUp() {
-        dynamoRsrc = new DynamoDbClientResource(mockDynamoClient);
-    }
+  @BeforeEach
+  void setUp() {
+    dynamoRsrc = new DynamoDbClientResource(mockDynamoClient);
+  }
 
-    @Test
-    void getClient_returnsSameClient() {
-        assertSame(mockDynamoClient, dynamoRsrc.getClient());
-    }
+  @Test
+  void getClient_returnsSameClient() {
+    assertSame(mockDynamoClient, dynamoRsrc.getClient());
+  }
 
-    @Test 
-    void afterRestore_replacesClient() {
-        System.setProperty("aws.region", "us-east-1");
-        assertDoesNotThrow(() -> dynamoRsrc.afterRestore(mockCracContext));
-        assertNotSame(mockDynamoClient, dynamoRsrc.getClient());
-    }
+  @Test
+  void afterRestore_replacesClient() {
+    System.setProperty("aws.region", "us-east-1");
+    assertDoesNotThrow(() -> dynamoRsrc.afterRestore(mockCracContext));
+    assertNotSame(mockDynamoClient, dynamoRsrc.getClient());
+  }
 
-    @Test
-    void beforeCheckpoint_handlesExceptionAndClosesClient() {
-        when(mockDynamoClient.describeTable(any(DescribeTableRequest.class)))
-            .thenThrow(RuntimeException.class);
-        assertDoesNotThrow(() -> dynamoRsrc.beforeCheckpoint(mockCracContext));
-        verify(mockDynamoClient).close();
-    }
+  @Test
+  void beforeCheckpoint_handlesExceptionAndClosesClient() {
+    when(mockDynamoClient.describeTable(any(DescribeTableRequest.class)))
+        .thenThrow(RuntimeException.class);
+    assertDoesNotThrow(() -> dynamoRsrc.beforeCheckpoint(mockCracContext));
+    verify(mockDynamoClient).close();
+  }
 }
