@@ -31,6 +31,7 @@
 		<junit.jupiter.version>6.0.3</junit.jupiter.version>
 		<mockito.junit.jupiter.version>5.23.0</mockito.junit.jupiter.version>
 		<org.assertj.assertj-core.version>3.27.7</org.assertj.assertj-core.version>
+		<org.slf4j.slf4j-simple.version>1.7.36</org.slf4j.slf4j-simple.version>
 
 		<!-- build plugin & plugin dependency versions -->
 		<maven.clean.plugin.version>3.5.0</maven.clean.plugin.version>
@@ -71,6 +72,11 @@
 				<groupId>org.crac</groupId>
 				<artifactId>crac</artifactId>
 				<version>${crac.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.slf4j</groupId>
+				<artifactId>slf4j-simple</artifactId>
+				<version>${org.slf4j.slf4j-simple.version}</version>
 			</dependency>
 
 			<!-- Test dependencies -->

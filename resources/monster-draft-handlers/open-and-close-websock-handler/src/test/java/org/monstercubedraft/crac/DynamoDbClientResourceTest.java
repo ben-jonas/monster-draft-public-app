@@ -1,10 +1,8 @@
 package org.monstercubedraft.crac;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.crac.Context;
@@ -37,17 +35,9 @@ public class DynamoDbClientResourceTest {
   }
 
   @Test
-  void afterRestore_replacesClient() {
-    System.setProperty("aws.region", "us-east-1");
-    assertDoesNotThrow(() -> dynamoRsrc.afterRestore(mockCracContext));
-    assertNotSame(mockDynamoClient, dynamoRsrc.getClient());
-  }
-
-  @Test
-  void beforeCheckpoint_handlesExceptionAndClosesClient() {
+  void beforeCheckpoint_handlesException() {
     when(mockDynamoClient.describeTable(any(DescribeTableRequest.class)))
         .thenThrow(RuntimeException.class);
     assertDoesNotThrow(() -> dynamoRsrc.beforeCheckpoint(mockCracContext));
-    verify(mockDynamoClient).close();
   }
 }

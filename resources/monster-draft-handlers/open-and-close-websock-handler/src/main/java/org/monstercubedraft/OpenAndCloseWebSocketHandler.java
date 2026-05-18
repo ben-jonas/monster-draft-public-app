@@ -34,10 +34,12 @@ public class OpenAndCloseWebSocketHandler
       String routeKey = input.getRequestContext().getRouteKey();
       if (routeKey.equals("$connect")) {
         System.out.println("Connect!");
-
         String connectCommandResult =
             connectUser(
-                input.getRequestContext().getConnectionId(), input.getQueryStringParameters());
+                input.getRequestContext().getConnectionId(),
+                input.getQueryStringParameters() == null ?
+                    Map.of() 
+                    : input.getQueryStringParameters());
         if (connectCommandResult.equals("success")) {
           return generateResponse(200);
         } else {

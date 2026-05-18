@@ -1,4 +1,5 @@
 import * as cdk from 'aws-cdk-lib/core';
+import * as logs from 'aws-cdk-lib/aws-logs';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as apigwv2 from 'aws-cdk-lib/aws-apigatewayv2';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
@@ -38,6 +39,8 @@ export class MonsterDraftPublicAppInfraStack extends cdk.Stack {
         WSCONNECTIONS_TABLE_NAME: wsConnectionsTable.tableName,
         GAME_TABLE_NAME: gameTable.tableName
       },
+      timeout: cdk.Duration.seconds(8),
+      memorySize: 256,
       code: lambda.Code.fromAsset(join(__dirname, 
         '../resources/monster-draft-handlers/open-and-close-websock-handler/target/open-and-close-websock-handler.jar')),
       snapStart: lambda.SnapStartConf.ON_PUBLISHED_VERSIONS
@@ -51,9 +54,11 @@ export class MonsterDraftPublicAppInfraStack extends cdk.Stack {
       aliasName: 'monsterdraft-api-openAndCloseWSockHandler-Alias',
       version: openAndCloseWSockHandlerVersion
     })
-    
 
-    const myApi = new apigwv2.WebSocketApi(this, 'mywebsocketapi', {
+    // Create a log group for the API
+    const logGroup = new logs.LogGroup(this, 'MonsterDraftApiLogGroup');
+
+    const myApi = new apigwv2.WebSocketApi(this, 'monsterdraftapi', {
       connectRouteOptions: {
         integration: new WebSocketLambdaIntegration('devconnectintegration', openAndCloseWSockHandlerAlias)
       },
@@ -68,43 +73,34 @@ export class MonsterDraftPublicAppInfraStack extends cdk.Stack {
     const myApiDevStage = new apigwv2.WebSocketStage(this, 'devstage', {
       webSocketApi: myApi,
       stageName: 'dev',
-      autoDeploy: true,
+      autoDeploy: true
     });
 
-    // const connectHandlerDev = new lambda.Function(this, 'devconnectlambda', {
-    //   runtime: lambda.Runtime.NODEJS_20_X,
-    //   handler: 'index.handler',
-    //   code: lambda.Code.fromInline(`
-    //     exports.handler = async (event) => {
-    //       console.log("Event: ", event);
-    //       return { statusCode: 200, body: "devconnectlambda" };
-    //     };
-    //     `)
-    // });
+    const wsApiLogFormat = [
+      'sourceIp=$context.identity.sourceIp',
+      'requestId=$context.requestId',
+      'requestTime=$context.requestTime',
+      'routeKey=$context.routeKey',
+      'status=$context.status',
+      'error.message=$context.error.message',
+      'error.messageString=$context.error.messageString',
+      'authorizer.error=$context.authorizer.error',
+      'userAgent=$context.identity.userAgent',
+      'connectionId=$context.connectionId',
+      'eventType=$context.eventType',
+    ].join(' ');
 
-    // const defaultHandlerDev = new lambda.Function(this, 'devdefaultlambda', {
-    //   runtime: lambda.Runtime.NODEJS_20_X,
-    //   handler: 'index.handler',
-    //   code: lambda.Code.fromInline(`
-    //     exports.handler = async (event) => {
-    //       console.log("Event: ", event);
-    //       return { statusCode: 200, body: "devdefaultlambda" };
-    //     };
-    //     `)
-    // })
+    // Use an escape hatch to enable logging on the L1 CfnStage
+    const cfnStage = myApiDevStage.node.defaultChild as apigwv2.CfnStage;
+    cfnStage.accessLogSettings = {
+      destinationArn: logGroup.logGroupArn,
+      format: wsApiLogFormat
+    };
+    cfnStage.defaultRouteSettings = {
+      loggingLevel: 'INFO',
+      dataTraceEnabled: true // Equivalent to "Log full message data"
+    };
 
-    // const disconnectHandlerDev = new lambda.Function(this, 'devdisconnectlambda', {
-    //   runtime: lambda.Runtime.NODEJS_20_X,
-    //   handler: 'index.handler',
-    //   code: lambda.Code.fromInline(`
-    //     exports.handler = async (event) => {
-    //       console.log("Event: ", event);
-    //       return { statusCode: 200, body: "devdisconnectlambda!" };
-    //     };
-    //     `)
-    // })
-
-    // Define a CloudFormation output for your URL
     new cdk.CfnOutput(this, "myApiDevStage", {
       value: myApiDevStage.url
     });

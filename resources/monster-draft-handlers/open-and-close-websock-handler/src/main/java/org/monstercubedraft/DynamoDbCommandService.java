@@ -112,6 +112,7 @@ public class DynamoDbCommandService {
             .expressionAttributeValues(Map.of(":inc", AttributeValue.fromN("1")))
             .conditionExpression("attribute_exists(gameId) AND occupants < maxOccupants")
             .build();
+    System.out.println("Attempting to increment player count for given game.");
     try {
       dynamoResource.getClient().updateItem(attemptIncrementPlayerCountRequest);
     } catch (ConditionalCheckFailedException e) {
@@ -132,6 +133,7 @@ public class DynamoDbCommandService {
                     "wsConnectionId", AttributeValue.fromS(wsConnectionId)))
             .conditionExpression("attribute_not_exists(gameRef)")
             .build();
+    System.out.println("Attempting to add new Session.");
     try {
       dynamoResource.getClient().putItem(addNewSessionEntry);
       return new CommandResult.Succeeded();
