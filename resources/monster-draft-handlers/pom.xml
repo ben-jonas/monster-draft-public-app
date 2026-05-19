@@ -10,6 +10,7 @@
 	<packaging>pom</packaging>
 
 	<modules>
+		<module>common</module>
 		<module>open-and-close-websock-handler</module>
 	</modules>
 
@@ -51,6 +52,11 @@
 	<dependencyManagement>
 		<dependencies>
 			<!-- Compile dependencies -->
+			<dependency>
+			  <groupId>org.monstercubedraft</groupId>
+			  <artifactId>common</artifactId>
+			  <version>${project.version}</version>
+			</dependency>
 			<dependency>
 				<groupId>com.amazonaws</groupId>
 				<artifactId>aws-lambda-java-core</artifactId>
