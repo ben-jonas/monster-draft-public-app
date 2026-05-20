@@ -1,0 +1,17 @@
+{
+	"gamId": "grouping_flankers_swindler",
+	"cmpnt": "LOBBY",
+	"isOpn": 1,
+	"maxSz": 8,
+	"name": "50cha game name, repeat 4x to account for unicode.50cha game name, repeat 4x to account for unicode.50cha game name, repeat 4x to account for unicode.50cha game name, repeat 4x to account for unicode.",
+	"sesns": {
+		"krakrakrak": {"nam": "KraftwerkKraftwerkKraftwerkKraftwerk", "ws": "BBBB1234="},
+		"eateateate": {"nam": "EatsbreadEatsbreadEatsbreadEatsbread", "ws": "CCCC1234="},
+		"flyflyflyf": {"nam": "FlyingbatFlyingbatFlyingbatFlyingbat", "ws": "DDDD1234="},
+		"dogdogdogd": {"nam": "DogwalkerDogwalkerDogwalkerDogwalker", "ws": "EEEE1234="},
+		"cracracrac": {"nam": "CrankiestCrankiestCrankiestCrankiest", "ws": "FFFF1234="},
+		"blablablab": {"nam": "BlanketedBlanketedBlanketedBlanketed", "ws": "GGGG1234="},
+		"strstrstrs": {"nam": "StrongestStrongestStrongestStrongest", "ws": "HHHH1234="},
+		"crecrecrec": {"nam": "CrescendoCrescendoCrescendoCrescendo", "ws": "IIII1234="}
+	}
+}
