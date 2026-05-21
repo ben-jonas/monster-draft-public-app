@@ -103,3 +103,23 @@ Attributes:
 ConsumedCapacity:
   CapacityUnits: 1.0
   TableName: testgames
+
+(more notes): So I have 230 bytes...I want to encode 'ready', 'confirm ready' for each item in "sessions" (sesns).
+I also want to encode the card game name and a reference to the rules params.
+
+To actually start the game, all players' "ready" ('r') and "confirm ready" ('rr') hashes must match. The client should compute this hash
+by taking the game's (rul + tcg + maxSz) values and hashing them, then taking the first 4 characters.
+
+Foreach session key in sesn: add two subkeys, 'r'->'12345' and 'rr'->'12345' (8*(1+5+1) + 8*(2+5+1) = 76 bytes)
+
+tcg: POKE or MAGI or YUGI (3+4 = 7 bytes)
+
+rul: aa/relative/path/from/bucket/to/rule/metadata.json (3+50 = 53 bytes)
+
+ttl: 1234567890 (3+10 = 13 bytes)
+
+That's 149 characters, so I have 81 remaining.
+
+Do we need a passphrase? "pswd": "######" would be 10B
+
+NEED TO CHECK THAT WS CONNECTIONS CAP OUT AT 8 CHARS + the EQUALS SIGN (=)
