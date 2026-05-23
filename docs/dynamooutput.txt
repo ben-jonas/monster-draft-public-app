@@ -122,4 +122,6 @@ That's 149 characters, so I have 81 remaining.
 
 Do we need a passphrase? "pswd": "######" would be 10B
 
+A leader? "leadr": "1234567890" (sessionId) would be 15B
+
 NEED TO CHECK THAT WS CONNECTIONS CAP OUT AT 8 CHARS + the EQUALS SIGN (=)

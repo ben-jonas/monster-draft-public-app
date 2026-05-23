@@ -1,0 +1,112 @@
+tables:
+  Games:
+    commonFields:
+      _totalBytes: 58
+      gamId:
+        _isPartitionKey: true
+        _fieldNameBytes: 5
+        _valueBytes: "26-char string = 26B"
+        _totalBytes: 31
+      page:
+        _isSortKey: true
+        _fieldNameBytes: 4
+        _valueBytes: "5-char string = 5B"
+        _totalBytes: 9
+      ttl:
+        _fieldNameBytes: 3
+        _valueBytes: "12 digit number + 1 = 6 + 1 = 7B"
+        _totalBytes: 10
+      schVer:
+        _fieldNameBytes: 6
+        _valueBytes: "2 digit number + 1 = 1 + 1 = 2B"
+        _totalBytes: 8
+        
+    LOBBY-page:
+      _totalBytes: 469
+      gamName:
+        _isGsiKey: true
+        _fieldNameBytes: 7
+        _valueBytes: "<'OPEN'|'CLOS'>#<tcg-4ch>#<ruleset-author-10ch>#<ruleset-name-10ch>#<partial-partitionKey-8ch> = 36B"
+        _totalBytes: 43
+      passwd:
+        _fieldNameBytes: 6
+        _valueBytes: "4-char word = 4B"
+        _totalBytes: 10
+      maxSz:
+        _fieldNameBytes: 5
+        _valueBytes: "2 digit number + 1 = 1 + 1 = 2B"
+        _totalBytes: 7
+      desc:
+        _fieldNameBytes: 4
+        _valueBytes: "50-char unicode = 200B"
+        _totalBytes: 204
+      sesns:
+        _fieldNameBytes: 5
+        _mapOverhead: 3
+        _numKeys: 8
+        1234567890:
+          _fieldOverhead: 1
+          _fieldNameBytes: "10-char session keys = 10B"
+          _valueBytes: "10-char session aliases = 10B"
+          _val: 1234567890
+        _totalBytes: 176
+      tcg:
+        _fieldNameBytes: 3
+        _valueBytes: "value <'MAGI'|'PKMN'|'YUGI'> = 4B"
+        _totalBytes: 7
+      rulSet:
+        _fieldNameBytes: 6
+        _valueBytes: "value 10-char string = 10B"
+        _totalBytes: 16
+      leadr:
+        _fieldNameBytes: 5
+        _valueBytes: "value 10-char key (references a sessionId) = 10B"
+        _totalBytes: 15
+        
+    DRAFT-page:
+      seats:
+        _fieldNameBytes: 5
+        _mapOverhead: 3
+        _numKeys: 8
+        1234567890:
+          _fieldOverhead: 1
+          _fieldNameBytes: 10
+          _mapOverhead: 3
+          luk:
+            _fieldOverhead: 1
+            _fieldNameBytes: 3
+            _valueBytes: "max 16 cards (base64-encoded), using 12bits each = 192bits or 24B"
+            _totalBytes: 28
+          mov:
+            _fieldOverhead: 1
+            _fieldNameBytes: 3
+            _valueBytes: "PIK#<card-2ch>#UPG#<card-2ch> = 13B"
+            _totalBytes: 17
+          own:
+            _fieldOverhead: 1
+            _fieldNameBytes: 3
+            _valueBytes: "max 16 cards (base64-encoded), using 12bits each = 192bits or 24B"
+            _totalBytes: 28
+          _totalBytes: 87
+        _totalBytes: 42
+      _totalBytes: 704
+      playercollections1: "411 bytes for a map w/ 4 keys"
+      config: "~260B for rules configuration"
+    
+    DATA1-page:
+      playerCollections2: "411 bytes for a map w/ 4 keys"
+      upgradeInventory: "550ish bytes for 275 entries encoded as base64"
+    
+    DATA2-page:
+      packData: "752ish bytes as a base64 block"
+
+
+            
+            
+            
+            
+            
+            
+            
+            
+            

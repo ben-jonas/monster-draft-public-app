@@ -1,0 +1,33 @@
+AccessPatterns:
+  HTTP:
+    - New Lobby
+    - View Open Lobbies
+  Websockets - Client-initiated actions:
+    - $connect new session
+    - $connect existing session
+    - $disconnect
+    - Lobby: 
+      - ready up
+      - confirm ready up
+      - unready
+      - change game
+      - change params
+    - Chat:
+      - broadcast msg
+      - whisper msg
+    - Draft:
+      - request visible game state
+      - pick card (standard or upgrade)
+  Websockets - Server-queued or triggered server actions:
+    - Lobby:
+      - Clean stale lobby
+      - Replace stale Websock ID
+      - Start game
+    - Draft:
+      - Execute setup and begin draft
+      - Pick card for slow player
+      - Process card pick / upgrade
+        - 1. Read game rules to check legality
+        - 2. Conditionally write requested action as pending and return full updated gamestate
+        - 3. If all pending actions in, apply pending and rotate packs/picks; push visible game state
+      - End game
