@@ -13,6 +13,7 @@
 		<module>common</module>
 		<module>open-and-close-websock-handler</module>
 		<module>create-lobby-handler</module>
+		<module>local-dynamo-tests</module>
 	</modules>
 
 	<name>monster-draft-handler-parent</name>
