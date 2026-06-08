@@ -1,6 +1,8 @@
 package org.monstercubedraft;
 
 import static java.util.Map.entry;
+import static org.monstercubedraft.model.constants.DraftTableConstants.PK_GAME_ID;
+import static org.monstercubedraft.model.constants.DraftTableConstants.SK_PAGE;
 
 import java.time.ZonedDateTime;
 import java.util.Map;
@@ -22,17 +24,12 @@ public class Main {
   private static String PROFILE_KWD = "--profile";
 
   private static boolean isPartitionOrSortKeyForGameTable(String s) {
-    return Set.of(GamesTableDynamoCommands.PK_GAME_ID, GamesTableDynamoCommands.SK_PAGE)
-        .contains(s);
+    return Set.of(PK_GAME_ID, SK_PAGE).contains(s);
   }
 
   private static void prettyPrintQueryResponse(QueryResponse q) {
     for (Map<String, AttributeValue> item : q.items()) {
-      System.out.println(
-          "Item: "
-              + item.get(GamesTableDynamoCommands.PK_GAME_ID).s()
-              + " | "
-              + item.get(GamesTableDynamoCommands.SK_PAGE).s());
+      System.out.println("Item: " + item.get(PK_GAME_ID).s() + " | " + item.get(SK_PAGE).s());
       for (String k : new TreeSet<String>(item.keySet())) {
         if (!isPartitionOrSortKeyForGameTable(k)) {
           System.out.println("  " + k + ": " + item.get(k));

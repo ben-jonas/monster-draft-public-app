@@ -1,6 +1,40 @@
 package org.monstercubedraft;
 
 import static java.util.Map.entry;
+import static org.monstercubedraft.model.constants.DraftTableConstants.ACTIVE_SCHEMA_VERSION;
+import static org.monstercubedraft.model.constants.DraftTableConstants.K_ALIASES_SET;
+import static org.monstercubedraft.model.constants.DraftTableConstants.K_COLLECTED_CARDS;
+import static org.monstercubedraft.model.constants.DraftTableConstants.K_IS_INITIALIZED;
+import static org.monstercubedraft.model.constants.DraftTableConstants.K_LEADER;
+import static org.monstercubedraft.model.constants.DraftTableConstants.K_MAXSIZE;
+import static org.monstercubedraft.model.constants.DraftTableConstants.K_PLAYERNAMES_MAP;
+import static org.monstercubedraft.model.constants.DraftTableConstants.K_READY_SET;
+import static org.monstercubedraft.model.constants.DraftTableConstants.K_ROUND_AND_TURN;
+import static org.monstercubedraft.model.constants.DraftTableConstants.K_RULESET_ID;
+import static org.monstercubedraft.model.constants.DraftTableConstants.K_SEAT0;
+import static org.monstercubedraft.model.constants.DraftTableConstants.K_SEAT1;
+import static org.monstercubedraft.model.constants.DraftTableConstants.K_SEAT2;
+import static org.monstercubedraft.model.constants.DraftTableConstants.K_SEAT3;
+import static org.monstercubedraft.model.constants.DraftTableConstants.K_SEAT4;
+import static org.monstercubedraft.model.constants.DraftTableConstants.K_SEAT5;
+import static org.monstercubedraft.model.constants.DraftTableConstants.K_SEAT6;
+import static org.monstercubedraft.model.constants.DraftTableConstants.K_SEAT7;
+import static org.monstercubedraft.model.constants.DraftTableConstants.K_SEATED_SET;
+import static org.monstercubedraft.model.constants.DraftTableConstants.K_SEATS_TO_ALIASES_MAP;
+import static org.monstercubedraft.model.constants.DraftTableConstants.K_SEATX_CURRENT_PACK;
+import static org.monstercubedraft.model.constants.DraftTableConstants.K_SEATX_HELD_CARDS;
+import static org.monstercubedraft.model.constants.DraftTableConstants.K_SEATX_PENDING_MOVE;
+import static org.monstercubedraft.model.constants.DraftTableConstants.K_SESSION_MAP;
+import static org.monstercubedraft.model.constants.DraftTableConstants.K_TCG;
+import static org.monstercubedraft.model.constants.DraftTableConstants.K_TIME_LIMIT_SCHEME;
+import static org.monstercubedraft.model.constants.DraftTableConstants.K_TTL;
+import static org.monstercubedraft.model.constants.DraftTableConstants.K_UNOPENED_PACKS;
+import static org.monstercubedraft.model.constants.DraftTableConstants.K_UPGRADE_SHOP_1;
+import static org.monstercubedraft.model.constants.DraftTableConstants.K_UPGRADE_SHOP_2;
+import static org.monstercubedraft.model.constants.DraftTableConstants.K_VERSION;
+import static org.monstercubedraft.model.constants.DraftTableConstants.PK_GAME_ID;
+import static org.monstercubedraft.model.constants.DraftTableConstants.SK_PAGE;
+import static org.monstercubedraft.model.constants.DraftTableConstants.TBL_DRAFT;
 import static software.amazon.awssdk.services.dynamodb.model.AttributeValue.fromB;
 import static software.amazon.awssdk.services.dynamodb.model.AttributeValue.fromBool;
 import static software.amazon.awssdk.services.dynamodb.model.AttributeValue.fromM;
@@ -29,46 +63,6 @@ import software.amazon.awssdk.services.dynamodb.model.TransactWriteItemsRequest;
 import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
 
 public class GamesTableDynamoCommands {
-
-  public static final int ACTIVE_SCHEMA_VERSION = 1;
-  public static final String TBL_DRAFT = "TestGames";
-
-  public static final String PK_GAME_ID = "gId";
-  public static final String SK_PAGE = "pag";
-  public static final String K_TTL = "ttl";
-  public static final String K_VERSION = "ver";
-
-  public static final String K_TCG = "tcg";
-  public static final String K_MAXSIZE = "maxSz";
-  public static final String K_ALIASES_SET = "aliases";
-  public static final String K_SESSION_MAP = "sesns";
-  public static final String K_PLAYERNAMES_MAP = "playrNames";
-  public static final String K_EXTENSIONS_SET = "xtensns";
-  public static final String K_LEADER = "leadr";
-  public static final String K_SEATED_SET = "seated";
-  public static final String K_SEATS_TO_ALIASES_MAP = "seats";
-  public static final String K_READY_SET = "ready";
-  public static final String K_IS_INITIALIZED = "init";
-
-  public static final String K_RULESET_ID = "rulesetId";
-  public static final String K_TIME_LIMIT_SCHEME = "timeLimitScheme";
-  public static final String K_ROUND_AND_TURN = "roundTurn";
-  public static final String K_SEAT0 = "s0";
-  public static final String K_SEAT1 = "s1";
-  public static final String K_SEAT2 = "s2";
-  public static final String K_SEAT3 = "s3";
-  public static final String K_SEAT4 = "s4";
-  public static final String K_SEAT5 = "s5";
-  public static final String K_SEAT6 = "s6";
-  public static final String K_SEAT7 = "s7";
-  public static final String CURRENT_PACK = "pac";
-  public static final String PENDING_DRAFT_ACTION = "mov";
-  public static final String CURRENT_ROUND_HELD_CARDS = "own";
-
-  public static final String K_UNOPENED_PACKS = "pacsBlok";
-  public static final String K_COLLECTED_CARDS = "colsBlock";
-  public static final String K_UPGRADE_SHOP_1 = "shop1";
-  public static final String K_UPGRADE_SHOP_2 = "shop2";
 
   public static final int TTL_TIMEDELTA_HRS = 24;
 
@@ -118,9 +112,9 @@ public class GamesTableDynamoCommands {
 
     Map<String, AttributeValue> commonSeatFields =
         Map.ofEntries(
-            entry(CURRENT_PACK, AttributeValue.fromNul(true)),
-            entry(PENDING_DRAFT_ACTION, AttributeValue.fromNul(true)),
-            entry(CURRENT_ROUND_HELD_CARDS, AttributeValue.fromNul(true)));
+            entry(K_SEATX_CURRENT_PACK, AttributeValue.fromNul(true)),
+            entry(K_SEATX_PENDING_MOVE, AttributeValue.fromNul(true)),
+            entry(K_SEATX_HELD_CARDS, AttributeValue.fromNul(true)));
     for (String k :
         Set.of(K_SEAT0, K_SEAT1, K_SEAT2, K_SEAT3, K_SEAT4, K_SEAT5, K_SEAT6, K_SEAT7)) {
       da0PgItem.put(k, fromM(commonSeatFields));
@@ -551,7 +545,7 @@ public class GamesTableDynamoCommands {
                                 entry("#seat5", K_SEAT5),
                                 entry("#seat6", K_SEAT6),
                                 entry("#seat7", K_SEAT7),
-                                entry("#currentPack", CURRENT_PACK)))
+                                entry("#currentPack", K_SEATX_CURRENT_PACK)))
                         .expressionAttributeValues(
                             Map.ofEntries(
                                 entry(":ttl", fromN(String.valueOf(ttl.toEpochSecond()))),
