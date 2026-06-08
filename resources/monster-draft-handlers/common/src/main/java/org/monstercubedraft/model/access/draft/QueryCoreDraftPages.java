@@ -1,0 +1,42 @@
+package org.monstercubedraft.model.access.draft;
+
+import static org.monstercubedraft.model.constants.DraftTableConstants.PK_GAME_ID;
+import static org.monstercubedraft.model.constants.DraftTableConstants.SK_PAGE;
+import static software.amazon.awssdk.services.dynamodb.model.AttributeValue.fromS;
+
+import java.util.Map;
+
+import org.monstercubedraft.model.access.ReadItemsPattern;
+import org.monstercubedraft.model.types.DraftPage;
+
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.model.QueryRequest;
+import software.amazon.awssdk.services.dynamodb.model.QueryResponse;
+
+public class QueryCoreDraftPages implements ReadItemsPattern<QueryRequest, QueryResponse> {
+
+  private final String tableName;
+  private final String draftId;
+
+  QueryCoreDraftPages(String tableName, String draftId) {
+    this.tableName = tableName;
+    this.draftId = draftId;
+  }
+
+  @Override
+  public QueryRequest request() {
+    // TODO Auto-generated method stub
+    return QueryRequest.builder()
+        .tableName(tableName)
+        .keyConditionExpression(
+            String.format("%s = :draftId and begins_with(%s, :namespace)", PK_GAME_ID, SK_PAGE))
+        .expressionAttributeValues(
+            Map.of(":namespace", fromS(DraftPage.INDEX.getNamespace()), ":draftId", fromS(draftId)))
+        .build();
+  }
+
+  @Override
+  public QueryResponse queryFrom(DynamoDbClient dynamoDb) {
+    return dynamoDb.query(this.request());
+  }
+}

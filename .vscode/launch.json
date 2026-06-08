@@ -2,6 +2,23 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
+			"type": "java",
+			"name": "Launch Current File",
+			"request": "launch",
+			"mainClass": "${file}"
+		},
+		{
+			"type": "java",
+			"name": "Local Dynamo Tests",
+			"request": "launch",
+			"mainClass": "org.monstercubedraft.Main",
+			"projectName": "local-dynamo-tests",
+			"args": [
+				"--profile",
+				"${input:awsProfileName}"
+			]
+		},
+		{
 			"type": "node",
 			"request": "launch",
 			"name": "Debug Lambda handler",
@@ -71,6 +88,11 @@
 				"basic-websock",
 				"other-websock"
 			]
-		}
+		},
+		{
+            "id": "awsProfileName",
+            "type": "promptString",
+            "description": "AWS SSO profile name"
+        }
 	]
 }
