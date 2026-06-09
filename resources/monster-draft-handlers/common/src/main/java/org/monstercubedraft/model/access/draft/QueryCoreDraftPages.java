@@ -7,6 +7,7 @@ import static software.amazon.awssdk.services.dynamodb.model.AttributeValue.from
 import java.util.Map;
 
 import org.monstercubedraft.model.access.ReadItemsPattern;
+import org.monstercubedraft.model.types.DraftId;
 import org.monstercubedraft.model.types.DraftPage;
 
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
@@ -16,9 +17,9 @@ import software.amazon.awssdk.services.dynamodb.model.QueryResponse;
 public class QueryCoreDraftPages implements ReadItemsPattern<QueryRequest, QueryResponse> {
 
   private final String tableName;
-  private final String draftId;
+  private final DraftId draftId;
 
-  QueryCoreDraftPages(String tableName, String draftId) {
+  QueryCoreDraftPages(String tableName, DraftId draftId) {
     this.tableName = tableName;
     this.draftId = draftId;
   }
@@ -31,7 +32,11 @@ public class QueryCoreDraftPages implements ReadItemsPattern<QueryRequest, Query
         .keyConditionExpression(
             String.format("%s = :draftId and begins_with(%s, :namespace)", PK_GAME_ID, SK_PAGE))
         .expressionAttributeValues(
-            Map.of(":namespace", fromS(DraftPage.INDEX.getNamespace()), ":draftId", fromS(draftId)))
+            Map.of(
+                ":namespace",
+                fromS(DraftPage.INDEX.getNamespace()),
+                ":draftId",
+                fromS(draftId.toString())))
         .build();
   }
 

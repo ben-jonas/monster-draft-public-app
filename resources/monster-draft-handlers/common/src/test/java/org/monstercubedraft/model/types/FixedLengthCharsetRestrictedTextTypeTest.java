@@ -1,16 +1,17 @@
 package org.monstercubedraft.model.types;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 import java.util.List;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
-public class AbstractStrictTextTypeTests {
+public class FixedLengthCharsetRestrictedTextTypeTest {
 
-  class TestTypeA extends AbstractStrictTextType {
+  class TestTypeA extends FixedLengthCharsetRestrictedTextType {
 
     public TestTypeA(String s) {
       super(s);
@@ -27,7 +28,7 @@ public class AbstractStrictTextTypeTests {
     }
   }
 
-  class TestTypeB extends AbstractStrictTextType {
+  class TestTypeB extends FixedLengthCharsetRestrictedTextType {
 
     public TestTypeB(String s) {
       super(s);
@@ -53,23 +54,20 @@ public class AbstractStrictTextTypeTests {
 
   @Test
   void typeA_nullarg() {
-    assertThatCode(() -> new TestTypeA(null))
-        .doesNotThrowAnyExceptionExcept(NullPointerException.class);
+    assertThatNullPointerException().isThrownBy(() -> new TestTypeA(null));
   }
 
   @Test
   void typeA_wrongLength() {
     for (String s : List.of("aaa", "c", "abca")) {
-      assertThatCode(() -> new TestTypeA(s))
-          .doesNotThrowAnyExceptionExcept(IllegalArgumentException.class);
+      assertThatIllegalArgumentException().isThrownBy(() -> new TestTypeA(s));
     }
   }
 
   @Test
   void typeA_wrongChars() {
     for (String s : List.of("a1", "1a", "11")) {
-      assertThatCode(() -> new TestTypeA(s))
-          .doesNotThrowAnyExceptionExcept(IllegalArgumentException.class);
+      assertThatIllegalArgumentException().isThrownBy(() -> new TestTypeA(s));
     }
   }
 
@@ -82,23 +80,20 @@ public class AbstractStrictTextTypeTests {
 
   @Test
   void typeB_nullarg() {
-    assertThatCode(() -> new TestTypeB(null))
-        .doesNotThrowAnyExceptionExcept(NullPointerException.class);
+    assertThatNullPointerException().isThrownBy(() -> new TestTypeB(null));
   }
 
   @Test
   void typeB_wrongLength() {
     for (String s : List.of("fd", "efghefgh", "fged")) {
-      assertThatCode(() -> new TestTypeB(s))
-          .doesNotThrowAnyExceptionExcept(IllegalArgumentException.class);
+      assertThatIllegalArgumentException().isThrownBy(() -> new TestTypeB(s));
     }
   }
 
   @Test
   void typeB_wrongChars() {
     for (String s : List.of("1efge", "efg1e", "deans")) {
-      assertThatCode(() -> new TestTypeB(s))
-          .doesNotThrowAnyExceptionExcept(IllegalArgumentException.class);
+      assertThatIllegalArgumentException().isThrownBy(() -> new TestTypeB(s));
     }
   }
 }

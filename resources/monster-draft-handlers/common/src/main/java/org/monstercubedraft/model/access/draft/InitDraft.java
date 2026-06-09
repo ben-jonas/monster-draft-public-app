@@ -32,6 +32,7 @@ import java.time.ZonedDateTime;
 import java.util.Map;
 
 import org.monstercubedraft.model.access.TransactionalWritePattern;
+import org.monstercubedraft.model.types.DraftId;
 import org.monstercubedraft.model.types.DraftPage;
 
 import software.amazon.awssdk.core.SdkBytes;
@@ -44,12 +45,12 @@ import software.amazon.awssdk.services.dynamodb.model.TransactWriteItemsResponse
 class InitDraft implements TransactionalWritePattern {
 
   private String tableName;
-  private String draftId;
+  private DraftId draftId;
   private ZonedDateTime ttl;
 
-  public InitDraft(String tableName, String draftId, ZonedDateTime ttl) {
+  public InitDraft(String tableName, DraftId draftId2, ZonedDateTime ttl) {
     this.tableName = tableName;
-    this.draftId = draftId;
+    this.draftId = draftId2;
     this.ttl = ttl;
   }
 
@@ -77,7 +78,7 @@ class InitDraft implements TransactionalWritePattern {
                 u.tableName(tableName)
                     .key(
                         Map.ofEntries(
-                            entry(PK_GAME_ID, fromS(draftId)),
+                            entry(PK_GAME_ID, fromS(draftId.toString())),
                             entry(SK_PAGE, DraftPage.INDEX.asAttributeValue())))
                     .updateExpression("SET #isInitialized = :true, #ttl = :ttl")
                     .conditionExpression(
@@ -106,7 +107,7 @@ class InitDraft implements TransactionalWritePattern {
                 u.tableName(tableName)
                     .key(
                         Map.ofEntries(
-                            entry(PK_GAME_ID, fromS(draftId)),
+                            entry(PK_GAME_ID, fromS(draftId.toString())),
                             entry(SK_PAGE, DraftPage.DATA0.asAttributeValue())))
                     .updateExpression(
                         "SET #isInitialized = :true, "
@@ -154,7 +155,7 @@ class InitDraft implements TransactionalWritePattern {
 
   private TransactWriteItem putData1() {
     Map<String, AttributeValue> data1Fields =
-        Utils.makeItemWithCommonFields(draftId, DraftPage.DATA1, ttl);
+        Utils.makeItemWithCommonFields(draftId.toString(), DraftPage.DATA1, ttl);
     // TODO This is dummy data
     data1Fields.put(K_UNOPENED_PACKS, fromB(SdkBytes.fromUtf8String("b64encUnopenedPacks")));
     data1Fields.put(K_COLLECTED_CARDS, fromB(SdkBytes.fromUtf8String("b64encCollectedCards")));
@@ -164,7 +165,7 @@ class InitDraft implements TransactionalWritePattern {
 
   private TransactWriteItem putData2() {
     Map<String, AttributeValue> data2Fields =
-        Utils.makeItemWithCommonFields(draftId, DraftPage.DATA2, ttl);
+        Utils.makeItemWithCommonFields(draftId.toString(), DraftPage.DATA2, ttl);
     // TODO This is dummy data
     data2Fields.put(K_UPGRADE_SHOP_2, fromB(SdkBytes.fromUtf8String("b64encStoreInventory2")));
     return TransactWriteItem.builder().put(p -> p.tableName(tableName).item(data2Fields)).build();

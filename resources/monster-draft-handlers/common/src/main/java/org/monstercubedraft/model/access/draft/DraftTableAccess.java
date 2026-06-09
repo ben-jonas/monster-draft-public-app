@@ -7,6 +7,7 @@ import java.time.ZonedDateTime;
 import org.monstercubedraft.model.access.ReadItemsPattern;
 import org.monstercubedraft.model.access.TransactionalWritePattern;
 import org.monstercubedraft.model.access.WriteItemPattern;
+import org.monstercubedraft.model.types.DraftId;
 import org.monstercubedraft.model.types.SessionAlias;
 import org.monstercubedraft.model.types.SessionId;
 import org.monstercubedraft.model.types.Tcg;
@@ -28,9 +29,9 @@ public class DraftTableAccess {
 
   public static class AccessOnPartition {
     private final String tableName;
-    private final String draftId;
+    private final DraftId draftId;
 
-    private AccessOnPartition(String tableName, String draftId) {
+    private AccessOnPartition(String tableName, DraftId draftId) {
       this.tableName = tableName;
       this.draftId = requireNonNull(draftId);
     }
@@ -108,7 +109,7 @@ public class DraftTableAccess {
     }
   }
 
-  public AccessOnPartition onPartition(String draftId) {
+  public AccessOnPartition onPartition(DraftId draftId) {
     return new AccessOnPartition(this.tableName, draftId);
   }
 }

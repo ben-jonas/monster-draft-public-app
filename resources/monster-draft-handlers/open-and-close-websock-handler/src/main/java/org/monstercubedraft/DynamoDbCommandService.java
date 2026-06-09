@@ -91,7 +91,7 @@ public class DynamoDbCommandService {
   public CommandResult connectToNewSession(String wsConnectionId, String gameId) {
     Objects.requireNonNull(wsConnectionId);
     Objects.requireNonNull(gameId);
-    String sessionId = idGeneratorResource.generateSessionId();
+    String sessionId = idGeneratorResource.generateSessionId().toString();
     CommandResult joinGameAttempt = attemptIncrementPlayerCount(gameId);
     switch (joinGameAttempt) {
       case CommandResult.Succeeded _ -> {

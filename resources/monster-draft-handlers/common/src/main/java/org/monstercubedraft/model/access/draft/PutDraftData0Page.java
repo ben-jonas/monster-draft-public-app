@@ -23,6 +23,7 @@ import java.time.ZonedDateTime;
 import java.util.Map;
 import java.util.Set;
 
+import org.monstercubedraft.model.types.DraftId;
 import org.monstercubedraft.model.types.DraftPage;
 
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
@@ -32,7 +33,7 @@ public class PutDraftData0Page extends AbstractPutDraftItemPattern {
 
   private final ZonedDateTime timeToLive;
 
-  PutDraftData0Page(String tableName, String draftId, ZonedDateTime timeToLive) {
+  PutDraftData0Page(String tableName, DraftId draftId, ZonedDateTime timeToLive) {
     super(tableName, draftId);
     this.timeToLive = timeToLive;
   }
@@ -40,7 +41,7 @@ public class PutDraftData0Page extends AbstractPutDraftItemPattern {
   @Override
   public PutItemRequest request() {
     Map<String, AttributeValue> da0PgItem =
-        Utils.makeItemWithCommonFields(draftId, DraftPage.DATA0, timeToLive);
+        Utils.makeItemWithCommonFields(draftId.toString(), DraftPage.DATA0, timeToLive);
     da0PgItem.put(K_TIME_LIMIT_SCHEME, fromS("NONE"));
     da0PgItem.put(K_IS_INITIALIZED, fromBool(false));
 

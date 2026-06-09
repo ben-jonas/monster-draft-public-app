@@ -9,6 +9,7 @@ import static software.amazon.awssdk.services.dynamodb.model.AttributeValue.from
 
 import java.util.Map;
 
+import org.monstercubedraft.model.types.DraftId;
 import org.monstercubedraft.model.types.DraftPage;
 
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
@@ -17,7 +18,7 @@ public class UpdateDraftSetRulesetId extends AbstractUpdateDraftItemPattern {
 
   private final String rulesetId;
 
-  public UpdateDraftSetRulesetId(String tableName, String draftId, String rulesetId) {
+  public UpdateDraftSetRulesetId(String tableName, DraftId draftId, String rulesetId) {
     super(tableName, draftId);
     this.rulesetId = rulesetId;
   }

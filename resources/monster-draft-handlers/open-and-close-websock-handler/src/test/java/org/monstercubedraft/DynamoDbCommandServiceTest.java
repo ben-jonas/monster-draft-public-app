@@ -20,6 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.monstercubedraft.DynamoDbCommandService.CommandResult;
 import org.monstercubedraft.crac.DynamoDbClientResource;
 import org.monstercubedraft.crac.IdGeneratorResource;
+import org.monstercubedraft.model.types.SessionId;
 
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
@@ -145,6 +146,7 @@ public class DynamoDbCommandServiceTest {
   @Test
   void connectToNewSession_attemptIncrementPlayerCountFailsConditionCheck() {
     // This represents the first of two sequential calls to Dynamo failing.
+    when(mockIdGeneratorResource.generateSessionId()).thenReturn(new SessionId("aaaaa11111"));
     when(mockDynamoDbClient.updateItem(any(UpdateItemRequest.class)))
         .thenThrow(ConditionalCheckFailedException.class);
     CommandResult result =
@@ -156,6 +158,7 @@ public class DynamoDbCommandServiceTest {
   @Test
   void connectToNewSession_attemptPutSessionFailsConditionCheck() {
     // This represents the second of two sequential calls to Dynamo failing.
+    when(mockIdGeneratorResource.generateSessionId()).thenReturn(new SessionId("aaaaa11111"));
     when(mockDynamoDbClient.updateItem(any(UpdateItemRequest.class)))
         .thenReturn(
             UpdateItemResponse.builder()
@@ -170,6 +173,7 @@ public class DynamoDbCommandServiceTest {
 
   @Test
   void connectToNewSession_validConditionChecks() {
+    when(mockIdGeneratorResource.generateSessionId()).thenReturn(new SessionId("aaaaa11111"));
     when(mockDynamoDbClient.updateItem(any(UpdateItemRequest.class)))
         .thenReturn(
             UpdateItemResponse.builder()

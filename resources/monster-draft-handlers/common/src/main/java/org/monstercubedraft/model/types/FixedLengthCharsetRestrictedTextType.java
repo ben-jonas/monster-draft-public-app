@@ -4,7 +4,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public abstract class AbstractStrictTextType {
+public abstract class FixedLengthCharsetRestrictedTextType {
 
   protected final String s;
 
@@ -16,7 +16,7 @@ public abstract class AbstractStrictTextType {
 
   public abstract int length();
 
-  public AbstractStrictTextType(String s) {
+  public FixedLengthCharsetRestrictedTextType(String s) {
     if (Objects.requireNonNull(s).length() != this.length()) {
       throw new IllegalArgumentException(
           String.format("String must be %d chars long", this.length()));

@@ -9,6 +9,7 @@ import static software.amazon.awssdk.services.dynamodb.model.ReturnValuesOnCondi
 import java.util.Map;
 
 import org.monstercubedraft.model.access.WriteItemPattern;
+import org.monstercubedraft.model.types.DraftId;
 import org.monstercubedraft.model.types.DraftPage;
 
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
@@ -20,9 +21,9 @@ public abstract class AbstractUpdateDraftItemPattern
     implements WriteItemPattern<UpdateItemRequest, UpdateItemResponse> {
 
   protected final String tableName;
-  protected final String draftId;
+  protected final DraftId draftId;
 
-  AbstractUpdateDraftItemPattern(String tableName, String draftId) {
+  AbstractUpdateDraftItemPattern(String tableName, DraftId draftId) {
     this.tableName = tableName;
     this.draftId = draftId;
   }
@@ -43,7 +44,8 @@ public abstract class AbstractUpdateDraftItemPattern
         .tableName(this.tableName)
         .key(
             Map.ofEntries(
-                entry(PK_GAME_ID, fromS(this.draftId)), entry(SK_PAGE, page().asAttributeValue())))
+                entry(PK_GAME_ID, fromS(this.draftId.toString())),
+                entry(SK_PAGE, page().asAttributeValue())))
         .updateExpression(updateExpression())
         .conditionExpression(conditionExpression())
         .expressionAttributeNames(expressionAttributeNames())

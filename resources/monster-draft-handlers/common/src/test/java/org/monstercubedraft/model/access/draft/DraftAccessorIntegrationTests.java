@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.monstercubedraft.model.access.TransactionalWritePattern;
 import org.monstercubedraft.model.access.WriteItemPattern;
 import org.monstercubedraft.model.access.draft.DraftTableAccess.AccessOnPartition;
+import org.monstercubedraft.model.types.DraftId;
 import org.monstercubedraft.model.types.SessionAlias;
 import org.monstercubedraft.model.types.SessionId;
 import org.monstercubedraft.model.types.Tcg;
@@ -28,7 +29,7 @@ import software.amazon.awssdk.services.dynamodb.model.UpdateItemResponse;
 
 public class DraftAccessorIntegrationTests {
   static final String TEST_GAMES_TABLENAME = "TestGames";
-  static final String SOME_DRAFT_ID = "testId";
+  static final DraftId SOME_DRAFT_ID = DraftId.fromApiRepresentation("abcd1234_efhi5678_TEZTTEZT");
   static final ZonedDateTime SOME_TTL = ZonedDateTime.now().plusHours(2);
 
   static DynamoDbClient dynamoDbClient;
@@ -77,12 +78,11 @@ public class DraftAccessorIntegrationTests {
   @Test
   void easy() {
     ZonedDateTime ttlAtStart = ZonedDateTime.now().plusHours(2);
-    String testId = "testId";
     SessionId leaderSessionId = new SessionId("zezziom1Id");
     SessionAlias leaderSessionAlias = new SessionAlias("s1a");
     String sampleRulesetId = "011011someRuleset";
     String sampleTimeLimitScheme = "sometimelimitscheme";
-    AccessOnPartition testItemAccess = draftTableAccess.onPartition(testId);
+    AccessOnPartition testItemAccess = draftTableAccess.onPartition(SOME_DRAFT_ID);
 
     WriteItemPattern<PutItemRequest, PutItemResponse> putIndex =
         testItemAccess.putIndexPage(Tcg.MAGI, 1, ttlAtStart);

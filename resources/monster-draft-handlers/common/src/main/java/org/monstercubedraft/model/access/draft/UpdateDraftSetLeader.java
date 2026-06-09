@@ -8,6 +8,7 @@ import static software.amazon.awssdk.services.dynamodb.model.AttributeValue.from
 
 import java.util.Map;
 
+import org.monstercubedraft.model.types.DraftId;
 import org.monstercubedraft.model.types.DraftPage;
 import org.monstercubedraft.model.types.SessionId;
 
@@ -20,7 +21,7 @@ public class UpdateDraftSetLeader extends AbstractUpdateDraftItemPattern {
 
   private final SessionId sessionId;
 
-  UpdateDraftSetLeader(String tableName, String draftId, SessionId sessionId) {
+  UpdateDraftSetLeader(String tableName, DraftId draftId, SessionId sessionId) {
     super(tableName, draftId);
     this.sessionId = sessionId;
   }

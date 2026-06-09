@@ -1,10 +1,13 @@
 package org.monstercubedraft.crac;
 
 import java.security.SecureRandom;
+import java.util.Set;
 
 import org.crac.Context;
 import org.crac.Core;
 import org.crac.Resource;
+import org.monstercubedraft.model.types.DraftId;
+import org.monstercubedraft.model.types.SessionId;
 
 public class IdGeneratorResource implements org.crac.Resource {
   static final String CUSTOM_ID_CHARSET = "abcdefhijlmopqrtvwxyzABCDEFHIJLMOPQRTVWXYZ0123456789";
@@ -43,8 +46,8 @@ public class IdGeneratorResource implements org.crac.Resource {
    *
    * @return The session ID.
    */
-  public String generateSessionId() {
-    return String.valueOf(generateId(10));
+  public SessionId generateSessionId() {
+    return new SessionId(String.valueOf(generateId(10)));
   }
 
   /**
@@ -62,18 +65,22 @@ public class IdGeneratorResource implements org.crac.Resource {
    *
    * @return The game ID.
    */
-  public String generateGameId() {
-    char[] id = generateId(26);
-    id[8] = '_';
-    id[17] = '_';
-    return String.valueOf(id);
+  public DraftId generateGameId() {
+    char[] id = generateId(24);
+    return new DraftId(new StringBuilder().append(id).toString());
   }
 
   private char[] generateId(int length) {
+    return generateId(length, SessionId.CHARSET);
+  }
+
+  private char[] generateId(int length, Set<Character> charset) {
+    StringBuilder charsetAsString = new StringBuilder();
+    charset.stream().forEach(charsetAsString::append);
     char[] id = new char[length];
-    for (int i = 0; i < id.length; i++) {
-      int charsetIndex = secureRandom.nextInt(CUSTOM_ID_CHARSET.length());
-      id[i] = CUSTOM_ID_CHARSET.charAt(charsetIndex);
+    for (int newIdCursor = 0; newIdCursor < id.length; newIdCursor++) {
+      int charsetIndex = secureRandom.nextInt(charsetAsString.length());
+      id[newIdCursor] = charsetAsString.charAt(charsetIndex);
     }
     return id;
   }

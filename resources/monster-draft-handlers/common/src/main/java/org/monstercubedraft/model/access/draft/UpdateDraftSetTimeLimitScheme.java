@@ -9,6 +9,7 @@ import static software.amazon.awssdk.services.dynamodb.model.AttributeValue.from
 
 import java.util.Map;
 
+import org.monstercubedraft.model.types.DraftId;
 import org.monstercubedraft.model.types.DraftPage;
 
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
@@ -17,7 +18,7 @@ public class UpdateDraftSetTimeLimitScheme extends AbstractUpdateDraftItemPatter
 
   private final String timeLimitScheme;
 
-  public UpdateDraftSetTimeLimitScheme(String tableName, String draftId, String timeLimitScheme) {
+  public UpdateDraftSetTimeLimitScheme(String tableName, DraftId draftId, String timeLimitScheme) {
     super(tableName, draftId);
     this.timeLimitScheme = timeLimitScheme;
   }

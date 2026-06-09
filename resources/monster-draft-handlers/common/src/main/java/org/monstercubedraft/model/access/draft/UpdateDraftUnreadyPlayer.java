@@ -10,6 +10,7 @@ import static software.amazon.awssdk.services.dynamodb.model.AttributeValue.from
 import java.util.List;
 import java.util.Map;
 
+import org.monstercubedraft.model.types.DraftId;
 import org.monstercubedraft.model.types.DraftPage;
 import org.monstercubedraft.model.types.SessionAlias;
 
@@ -19,7 +20,7 @@ public class UpdateDraftUnreadyPlayer extends AbstractUpdateDraftItemPattern {
 
   private final SessionAlias sessionAlias;
 
-  public UpdateDraftUnreadyPlayer(String tableName, String draftId, SessionAlias sessionAlias) {
+  public UpdateDraftUnreadyPlayer(String tableName, DraftId draftId, SessionAlias sessionAlias) {
     super(tableName, draftId);
     this.sessionAlias = sessionAlias;
   }

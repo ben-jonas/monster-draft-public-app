@@ -2,7 +2,7 @@ package org.monstercubedraft.model.types;
 
 import java.util.Set;
 
-public class SessionId extends AbstractStrictTextType {
+public class SessionId extends FixedLengthCharsetRestrictedTextType {
 
   public static final Set<Character> CHARSET =
       stringToCharset("abcdefhijlmopqrtvwxyzABCDEFHIJLMOPQRTVWXYZ0123456789");

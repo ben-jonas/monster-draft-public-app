@@ -13,6 +13,7 @@ import static software.amazon.awssdk.services.dynamodb.model.AttributeValue.from
 import java.util.List;
 import java.util.Map;
 
+import org.monstercubedraft.model.types.DraftId;
 import org.monstercubedraft.model.types.DraftPage;
 import org.monstercubedraft.model.types.SessionAlias;
 import org.monstercubedraft.model.types.SessionId;
@@ -25,7 +26,7 @@ public class UpdateDraftAddSession extends AbstractUpdateDraftItemPattern {
   private final SessionAlias sessionAlias;
 
   UpdateDraftAddSession(
-      String tableName, String draftId, SessionId sessionId, SessionAlias sessionAlias) {
+      String tableName, DraftId draftId, SessionId sessionId, SessionAlias sessionAlias) {
     super(tableName, draftId);
     this.sessionId = sessionId;
     this.sessionAlias = sessionAlias;
