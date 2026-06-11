@@ -2,7 +2,7 @@ package org.monstercubedraft.model.access.draft;
 
 import static org.monstercubedraft.model.constants.DraftTableConstants.ACTIVE_SCHEMA_VERSION;
 import static org.monstercubedraft.model.constants.DraftTableConstants.K_TTL;
-import static org.monstercubedraft.model.constants.DraftTableConstants.K_VERSION;
+import static org.monstercubedraft.model.constants.DraftTableConstants.K_DRAFTTBL_VERSION;
 import static org.monstercubedraft.model.constants.DraftTableConstants.PK_GAME_ID;
 import static org.monstercubedraft.model.constants.DraftTableConstants.SK_PAGE;
 import static software.amazon.awssdk.services.dynamodb.model.AttributeValue.fromN;
@@ -32,7 +32,7 @@ final class Utils {
     item.put(PK_GAME_ID, fromS(gameId));
     item.put(SK_PAGE, page.asAttributeValue());
     item.put(K_TTL, fromN(String.valueOf(timeToLive.toEpochSecond())));
-    item.put(K_VERSION, fromN(String.valueOf(ACTIVE_SCHEMA_VERSION)));
+    item.put(K_DRAFTTBL_VERSION, fromN(String.valueOf(ACTIVE_SCHEMA_VERSION)));
     return item;
   }
 

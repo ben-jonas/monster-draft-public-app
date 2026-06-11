@@ -1,4 +1,27 @@
 allTables:
+  
+  Sessions:
+    _totalByes: 192
+    gId:
+      _isPartitionKey: true
+      _fieldNameBytes: 3
+      _valueBytes: 24 # 24-char string = 24B
+      _totalBytes: 27
+    sessionId:
+      _isSortKey: true
+      _fieldNameBytes: 3
+      _valueBytes: 10 # 10-char session key = 10B
+      _totalBytes: 13
+    wsConnectionId:
+      _fieldNameBytes: 14
+      _valueBytes: 128 # this is just a very safe estimate; ws connId length is arbitrarily changeable by AWS
+      _totalBytes: 142
+    ttl:
+      _fieldNameByes: 3
+      _valueBytes: 7 # 12 digit number + 1 = 6 + 1 = 7B
+      _totalBytes: 10
+      
+  
   Games:
     _define.CommonFields:
       _totalBytes: 50

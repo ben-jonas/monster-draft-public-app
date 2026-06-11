@@ -11,26 +11,58 @@ export class MonsterDraftPublicAppInfraStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    const wsConnectionsTable = new dynamodb.TableV2(this, 'MonsterDraftWsConnections', {
+    const wsConnectionsTable = new dynamodb.TableV2(this, 'MonsterCubeDraftSesns', {
       partitionKey: {
-        name: "sessionId",
+        name: "gId",
         type: dynamodb.AttributeType.STRING
       },
       sortKey: {
-        name: "gameRef",
+        name: "sessionId",
         type: dynamodb.AttributeType.STRING
       },
       billing: dynamodb.Billing.onDemand(),
     });
 
-    const gameTable = new dynamodb.TableV2(this, 'MonsterDraftGames', {
+    const gameTable = new dynamodb.TableV2(this, 'MonsterCubeDraftMain', {
       partitionKey: {
-        name: "gameId",
+        name: "gId",
         type: dynamodb.AttributeType.STRING
       },
+      sortKey: {
+        name: "pag"
+      }
       billing: dynamodb.Billing.onDemand(),
     });
-
+    
+    // Create a log group for the API
+    const logGroup = new logs.LogGroup(this, 'MonsterDraftApiLogGroup');
+    
+    
+    // handler for new lobbies and associated HTTP API
+    const createLobbyHandler = new lambda.Function(this, "CreateLobbyHandler", {
+      functionName: "monsterdraft-api-CreateLobbyHandler",
+      runtime: lambda.Runtime.JAVA_25,
+      handler: 'org.monstercubedraft.CreateLobbyHandler::handleRequest',
+      environment: {
+        "GAME_TABLE_NAME": gameTable.tableName
+      },
+      timeout: cdk.Duration.seconds(8),
+      memorySize: 256,
+      code: lambda.Code.fromAsset(join(__dirname,
+        '../resources/monster-draft-handlers/create-lobby-handler/target/create-lobby-handler.jar')),
+      snapStart: lambda.SnapStartConf.ON_PUBLISHED_VERSIONS
+    });
+    gameTable.grantReadWriteData(createLobbyHandler);
+    
+    const createLobbyHandlerVersion = creatLobbyHandler.currentVersion;
+    const createLobbyHandlerAlias = new lambda.Alias(this, 'createLobbyAlias', {
+      aliasName: 'monsterdraft-api-createLobbyHandler-Alias',
+      version: createLobbyHandlerVersion
+    })
+    
+    
+    
+    // handler for opening new sessions and associated WebSocket API
     const openAndCloseWSockHandler = new lambda.Function(this, "OpenAndCloseWSockHandler", {
       functionName: "monsterdraft-api-openAndCloseWSockHandler",
       runtime: lambda.Runtime.JAVA_25,
@@ -54,9 +86,6 @@ export class MonsterDraftPublicAppInfraStack extends cdk.Stack {
       aliasName: 'monsterdraft-api-openAndCloseWSockHandler-Alias',
       version: openAndCloseWSockHandlerVersion
     })
-
-    // Create a log group for the API
-    const logGroup = new logs.LogGroup(this, 'MonsterDraftApiLogGroup');
 
     const myApi = new apigwv2.WebSocketApi(this, 'monsterdraftapi', {
       connectRouteOptions: {

@@ -2,13 +2,14 @@ package org.monstercubedraft.model.constants;
 
 public final class DraftTableConstants {
   public static final int ACTIVE_SCHEMA_VERSION = 1;
-  public static final String TBL_DRAFT = "TestGames";
 
+  // common fields
   public static final String PK_GAME_ID = "gId";
   public static final String SK_PAGE = "pag";
   public static final String K_TTL = "ttl";
-  public static final String K_VERSION = "ver";
+  public static final String K_DRAFTTBL_VERSION = "ver";
 
+  // index fields
   public static final String K_TCG = "tcg";
   public static final String K_MAXSIZE = "maxSz";
   public static final String K_ALIASES_SET = "aliases";
@@ -21,6 +22,7 @@ public final class DraftTableConstants {
   public static final String K_READY_SET = "ready";
   public static final String K_IS_INITIALIZED = "init";
 
+  // "data0" fields
   public static final String K_RULESET_ID = "rulesetId";
   public static final String K_TIME_LIMIT_SCHEME = "timeLimitScheme";
   public static final String K_ROUND_AND_TURN = "roundTurn";
@@ -36,9 +38,12 @@ public final class DraftTableConstants {
   public static final String K_SEATX_PENDING_MOVE = "mov";
   public static final String K_SEATX_HELD_CARDS = "own";
 
+  // "data1" fields
   public static final String K_UNOPENED_PACKS = "pacsBlok";
   public static final String K_COLLECTED_CARDS = "colsBlock";
   public static final String K_UPGRADE_SHOP_1 = "shop1";
+
+  // "data2" fields
   public static final String K_UPGRADE_SHOP_2 = "shop2";
 
   private DraftTableConstants() {}

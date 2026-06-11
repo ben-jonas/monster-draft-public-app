@@ -27,7 +27,7 @@ import software.amazon.awssdk.services.dynamodb.model.QueryResponse;
 import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.UpdateItemResponse;
 
-public class DraftAccessorIntegrationTests {
+public class DraftAccessIntegrationTests {
   static final String TEST_GAMES_TABLENAME = "TestGames";
   static final DraftId SOME_DRAFT_ID = DraftId.fromApiRepresentation("abcd1234_efhi5678_TEZTTEZT");
   static final ZonedDateTime SOME_TTL = ZonedDateTime.now().plusHours(2);

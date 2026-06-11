@@ -1,5 +1,6 @@
 package org.monstercubedraft.model.access.draft;
 
+import static java.util.Map.entry;
 import static org.monstercubedraft.model.constants.DraftTableConstants.PK_GAME_ID;
 import static org.monstercubedraft.model.constants.DraftTableConstants.SK_PAGE;
 import static software.amazon.awssdk.services.dynamodb.model.AttributeValue.fromS;
@@ -26,11 +27,11 @@ public class QueryCoreDraftPages implements ReadItemsPattern<QueryRequest, Query
 
   @Override
   public QueryRequest request() {
-    // TODO Auto-generated method stub
     return QueryRequest.builder()
         .tableName(tableName)
-        .keyConditionExpression(
-            String.format("%s = :draftId and begins_with(%s, :namespace)", PK_GAME_ID, SK_PAGE))
+        .keyConditionExpression("#draftId = :draftId and begins_with(#page, :namespace)")
+        .expressionAttributeNames(
+            Map.ofEntries(entry("#draftId", PK_GAME_ID), entry("#page", SK_PAGE)))
         .expressionAttributeValues(
             Map.of(
                 ":namespace",
