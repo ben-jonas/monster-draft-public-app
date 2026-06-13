@@ -7,6 +7,7 @@ import org.monstercubedraft.crac.DynamoDbClientResource;
 import org.monstercubedraft.crac.IdGeneratorResource;
 import org.monstercubedraft.model.access.draft.DraftTableAccess;
 import org.monstercubedraft.model.types.DraftId;
+import org.monstercubedraft.model.types.Tcg;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
@@ -26,7 +27,7 @@ public class CreateLobbyHandler
     this(
         new DynamoDbClientResource(),
         new IdGeneratorResource(),
-        new DraftTableAccess(ENVKEY__GAME_TABLE_NAME));
+        new DraftTableAccess(System.getenv(ENVKEY__GAME_TABLE_NAME)));
   }
 
   public CreateLobbyHandler(
@@ -40,18 +41,22 @@ public class CreateLobbyHandler
 
   @Override
   public APIGatewayV2HTTPResponse handleRequest(APIGatewayV2HTTPEvent input, Context context) {
+    System.out.println(input.toString());
     try {
+      System.out.println("Generating game ID...");
       DraftId newGameId = idGenResource.generateGameId();
+      System.out.println("Done generating game ID. Writing new Draft to table...");
       draftTableAccess
           .onPartition(newGameId)
-          .putData0Page(ZonedDateTime.now().plusHours(24))
+          .putIndexPage(Tcg.PKMN, 8, ZonedDateTime.now().plusHours(24))
           .writeTo(dynamoResource.getClient());
+      System.out.println("Done writing new Draft to table.");
       return APIGatewayV2HTTPResponse.builder()
           .withBody(newGameId.getApiRepresentation())
           .withStatusCode(200)
           .build();
     } catch (Exception e) {
-      System.out.print(e);
+      System.out.print(e.toString());
       return APIGatewayV2HTTPResponse.builder().withStatusCode(500).build();
     }
   }
