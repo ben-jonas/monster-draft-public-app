@@ -7,6 +7,7 @@ import org.crac.Context;
 import org.crac.Core;
 import org.crac.Resource;
 import org.monstercubedraft.model.types.DraftId;
+import org.monstercubedraft.model.types.SessionAlias;
 import org.monstercubedraft.model.types.SessionId;
 
 public class IdGeneratorResource implements org.crac.Resource {
@@ -67,7 +68,12 @@ public class IdGeneratorResource implements org.crac.Resource {
    */
   public DraftId generateGameId() {
     char[] id = generateId(24);
-    return new DraftId(new StringBuilder().append(id).toString());
+    return new DraftId(String.valueOf(id));
+  }
+
+  public SessionAlias generateSessionAlias() {
+    char[] id = generateId(3, SessionAlias.CHARSET);
+    return new SessionAlias(String.valueOf(id));
   }
 
   private char[] generateId(int length) {
