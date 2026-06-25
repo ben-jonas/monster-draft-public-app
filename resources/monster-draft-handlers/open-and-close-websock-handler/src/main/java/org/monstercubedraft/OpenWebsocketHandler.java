@@ -55,6 +55,18 @@ public class OpenWebsocketHandler
   @Override
   public APIGatewayV2WebSocketResponse handleRequest(
       APIGatewayV2WebSocketEvent input, Context context) {
+    // try/catch everything so that the lambda context isn't killed in the event of an unhandled
+    // exception
+    try {
+      return handleRequestInternal(input, context);
+    } catch (Exception e) {
+      System.out.print("Unhandled exception thrown: " + e.getMessage());
+      return generateResponse(500);
+    }
+  }
+
+  public APIGatewayV2WebSocketResponse handleRequestInternal(
+      APIGatewayV2WebSocketEvent input, Context context) {
     System.out.println(input.toString());
 
     String wsConnectionId = input.getRequestContext().getConnectionId();
