@@ -1,5 +1,7 @@
 package org.monstercubedraft.model.types;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Set;
 
 public class DraftId extends FixedLengthCharsetRestrictedTextType {
@@ -16,6 +18,11 @@ public class DraftId extends FixedLengthCharsetRestrictedTextType {
   }
 
   public static DraftId fromApiRepresentation(String repr) {
+    int requiredLength = LENGTH + 2;
+    if (requireNonNull(repr.length()) != requiredLength) {
+      throw new IllegalArgumentException(
+          String.format("Must be a length-%d string", requiredLength));
+    }
     String internalRepresentation =
         new StringBuilder()
             .append(repr.substring(0, 8))

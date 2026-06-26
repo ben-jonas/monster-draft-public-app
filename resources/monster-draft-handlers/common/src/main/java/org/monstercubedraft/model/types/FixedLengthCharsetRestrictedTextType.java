@@ -34,4 +34,20 @@ public abstract class FixedLengthCharsetRestrictedTextType {
   public String toString() {
     return s;
   }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) return true;
+
+    if (obj == null || this.getClass() != obj.getClass()) return false;
+
+    FixedLengthCharsetRestrictedTextType castObj = (FixedLengthCharsetRestrictedTextType) obj;
+
+    return this.s == castObj.s;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash("fixLenCharRestrictedText", s);
+  }
 }

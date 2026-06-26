@@ -11,7 +11,7 @@
 
 	<modules>
 		<module>common</module>
-		<module>open-and-close-websock-handler</module>
+		<module>open-websock-handler</module>
 		<module>create-lobby-handler</module>
 	</modules>
 

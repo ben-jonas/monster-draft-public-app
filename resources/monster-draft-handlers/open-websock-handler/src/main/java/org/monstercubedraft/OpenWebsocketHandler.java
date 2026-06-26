@@ -58,14 +58,19 @@ public class OpenWebsocketHandler
     // try/catch everything so that the lambda context isn't killed in the event of an unhandled
     // exception
     try {
-      return handleRequestInternal(input, context);
+      var toReturn = handleRequestInternal(input, context);
+      System.out.println(
+          String.format(
+              "Request completed with status code %d and body '%s'",
+              toReturn.getStatusCode(), toReturn.getBody()));
+      return toReturn;
     } catch (Exception e) {
       System.out.print("Unhandled exception thrown: " + e.getMessage());
       return generateResponse(500);
     }
   }
 
-  public APIGatewayV2WebSocketResponse handleRequestInternal(
+  private APIGatewayV2WebSocketResponse handleRequestInternal(
       APIGatewayV2WebSocketEvent input, Context context) {
     System.out.println(input.toString());
 
@@ -75,7 +80,7 @@ public class OpenWebsocketHandler
 
     final DraftId draftId;
     try {
-      draftId = new DraftId(queryStringParams.get("draft_id"));
+      draftId = DraftId.fromApiRepresentation((queryStringParams.get("draft_id")));
     } catch (NullPointerException e) {
       System.out.println("'draft_id' query param was not specified");
       return generateResponse(400);
@@ -103,18 +108,23 @@ public class OpenWebsocketHandler
               .addSession(generatedSessionId, generatedSessionAlias);
       try {
         addSessionPattern.writeTo(dynamoResource.getClient());
+        System.out.println("Modified draft to include new session");
         try {
           sessionTableAccess
               .onPartition(draftId)
               .putSession(generatedSessionId, wsConnectionId, ZonedDateTime.now().plusHours(1))
               .writeTo(dynamoResource.getClient());
+          System.out.println("Added ws connection ID to session table");
         } catch (Exception e) {
           // TODO Use SQS to queue up a job to remove the session we just built from the Draft
           // table. (This should only happen in the rare case of a transient dynamodb failure that
           // is somehow not handled by SDK's retries.)
           return generateResponse(500);
         }
-        return generateResponse(200);
+        var response = new APIGatewayV2WebSocketResponse();
+        response.setStatusCode(200);
+        response.setBody(generatedSessionId.toString());
+        return response;
       } catch (ConditionalCheckFailedException e) {
         // TODO Write & use "UpdateDraftAddSession.interpretConditionFailures()", then log result
         return generateResponse(400);
@@ -127,8 +137,9 @@ public class OpenWebsocketHandler
             .putSession(sessionId, wsConnectionId, ZonedDateTime.now().plusHours(1))
             .writeTo(dynamoResource.getClient());
         return generateResponse(200);
-      } catch (Exception e) {
-        return generateResponse(500);
+      } catch (ConditionalCheckFailedException e) {
+        // TODO Write & use "UpdateDraftAddSession.interpretConditionFailures()", then log result
+        return generateResponse(400);
       }
     }
   }

@@ -10,7 +10,7 @@
 		<version>1.0-SNAPSHOT</version>
 	</parent>
 
-	<artifactId>open-and-close-websock-handler</artifactId>
+	<artifactId>open-websock-handler</artifactId>
 
 	<dependencies>
 		<!-- Compile dependencies -->
@@ -72,7 +72,7 @@
 	</dependencies>
 
 	<build>
-		<finalName>open-and-close-websock-handler</finalName>
+		<finalName>open-websock-handler</finalName>
 		<plugins>
 			<plugin>
 				<artifactId>maven-shade-plugin</artifactId>

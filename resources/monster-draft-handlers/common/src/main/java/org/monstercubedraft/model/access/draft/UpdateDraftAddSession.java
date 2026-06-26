@@ -47,7 +47,7 @@ public class UpdateDraftAddSession extends AbstractUpdateDraftItemPattern {
     return "attribute_exists(#pk) AND "
         + "#isInitialized = :false AND "
         + "attribute_not_exists(#sessionMap.#sessionId) AND "
-        + "size(#sessionMap) <= #maxDraftSize AND "
+        + "size(#sessionMap) < #maxDraftSize AND "
         + "NOT contains(#aliasesSet, :sessionAliasSs)";
   }
 

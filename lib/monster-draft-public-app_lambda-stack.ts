@@ -42,7 +42,7 @@ export class MonsterDraftPublicAppLambdaStack extends cdk.Stack {
     const openWebsockHandler = new lambda.Function(this, "OpenWebsocketConnectionHandler", {
       functionName: "monstercubedraft--dev--OpenWebsocketConnectionHandler",
       runtime: lambda.Runtime.JAVA_25,
-      handler: 'org.monstercubedraft.OpenAndCloseWebSocketHandler::handleRequest',
+      handler: 'org.monstercubedraft.OpenWebsocketHandler::handleRequest',
       environment: {
         WSCONNECTIONS_TABLE_NAME: websocketSessionsTable.tableName,
         GAME_TABLE_NAME: draftTable.tableName
@@ -50,7 +50,7 @@ export class MonsterDraftPublicAppLambdaStack extends cdk.Stack {
       timeout: cdk.Duration.seconds(8),
       memorySize: 256,
       code: lambda.Code.fromAsset(join(__dirname, 
-        '../resources/monster-draft-handlers/open-and-close-websock-handler/target/open-and-close-websock-handler.jar')),
+        '../resources/monster-draft-handlers/open-websock-handler/target/open-websock-handler.jar')),
       snapStart: lambda.SnapStartConf.ON_PUBLISHED_VERSIONS
     });
     websocketSessionsTable.grantReadWriteData(openWebsockHandler);
