@@ -13,6 +13,7 @@
 		<module>common</module>
 		<module>open-websock-handler</module>
 		<module>create-lobby-handler</module>
+		<module>main-draft-handler</module>
 	</modules>
 
 	<name>monster-draft-handler-parent</name>
