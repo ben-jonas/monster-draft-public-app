@@ -56,10 +56,10 @@ export class MonsterDraftPublicAppLambdaStack extends cdk.Stack {
     websocketSessionsTable.grantReadWriteData(openWebsockHandler);
     draftTable.grantReadWriteData(openWebsockHandler);
 
-    const openAndCloseWSockHandlerVersion = openWebsockHandler.currentVersion;
+    const openWebsockHandlerVersion = openWebsockHandler.currentVersion;
     this.openWebsocketConnectionHandlerAlias = new lambda.Alias(this, 'OpenWebsocketAlias',{
       aliasName: 'OpenWebsocketAlias',
-      version: openAndCloseWSockHandlerVersion
+      version: openWebsockHandlerVersion
     })
   }
 }
