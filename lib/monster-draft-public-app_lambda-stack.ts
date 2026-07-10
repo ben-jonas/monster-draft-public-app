@@ -1,20 +1,25 @@
 import * as cdk from 'aws-cdk-lib/core';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import * as sqs from 'aws-cdk-lib/aws-sqs';
+import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
 import { join } from 'path';
 import { Construct } from 'constructs';
 
 export interface MonsterDraftPublicAppLambdaStackProps extends cdk.StackProps {
   websocketSessionsTable: dynamodb.TableV2,
-  draftTable: dynamodb.TableV2
+  draftTable: dynamodb.TableV2,
+  draftQueue: sqs.Queue,
 }
 
 export class MonsterDraftPublicAppLambdaStack extends cdk.Stack {
   public readonly createLobbyHandlerAlias: lambda.Alias;
   public readonly openWebsocketConnectionHandlerAlias: lambda.Alias;
+  public readonly mainDraftHandlerAlias: lambda.Alias;
+
   constructor(scope: Construct, id: string, props: MonsterDraftPublicAppLambdaStackProps) {
     super(scope, id, props);
-    const { websocketSessionsTable, draftTable } = props;
+    const { websocketSessionsTable, draftTable, draftQueue } = props;
 
     // handler for new lobbies and associated HTTP API
     const createLobbyHandler = new lambda.Function(this, "CreateLobbyHandler", {
@@ -31,12 +36,12 @@ export class MonsterDraftPublicAppLambdaStack extends cdk.Stack {
         snapStart: lambda.SnapStartConf.ON_PUBLISHED_VERSIONS,
     });
     draftTable.grantReadWriteData(createLobbyHandler);
-    
+
     const createLobbyHandlerVersion = createLobbyHandler.currentVersion;
     this.createLobbyHandlerAlias = new lambda.Alias(this, 'CreateLobbyAlias', {
       aliasName: 'CreateLobbyAlias',
       version: createLobbyHandlerVersion,
-    })
+    });
 
     // handler for opening new sessions and associated WebSocket API
     const openWebsockHandler = new lambda.Function(this, "OpenWebsocketConnectionHandler", {
@@ -49,7 +54,7 @@ export class MonsterDraftPublicAppLambdaStack extends cdk.Stack {
       },
       timeout: cdk.Duration.seconds(8),
       memorySize: 256,
-      code: lambda.Code.fromAsset(join(__dirname, 
+      code: lambda.Code.fromAsset(join(__dirname,
         '../resources/monster-draft-handlers/open-websock-handler/target/open-websock-handler.jar')),
       snapStart: lambda.SnapStartConf.ON_PUBLISHED_VERSIONS
     });
@@ -57,9 +62,43 @@ export class MonsterDraftPublicAppLambdaStack extends cdk.Stack {
     draftTable.grantReadWriteData(openWebsockHandler);
 
     const openWebsockHandlerVersion = openWebsockHandler.currentVersion;
-    this.openWebsocketConnectionHandlerAlias = new lambda.Alias(this, 'OpenWebsocketAlias',{
+    this.openWebsocketConnectionHandlerAlias = new lambda.Alias(this, 'OpenWebsocketAlias', {
       aliasName: 'OpenWebsocketAlias',
       version: openWebsockHandlerVersion
-    })
+    });
+
+    // handler for in-game actions, triggered by SQS
+    const mainDraftHandler = new lambda.Function(this, "MainDraftHandler", {
+      functionName: "monstercubedraft--dev--MainDraftHandler",
+      runtime: lambda.Runtime.JAVA_25,
+      handler: 'org.monstercubedraft.MainDraftHandler::handleRequest',
+      environment: {
+        WSCONNECTIONS_TABLE_NAME: websocketSessionsTable.tableName,
+        GAME_TABLE_NAME: draftTable.tableName,
+        DRAFT_QUEUE_URL: draftQueue.queueUrl,
+      },
+      timeout: cdk.Duration.seconds(28), // must be less than queue visibility timeout (30s)
+      memorySize: 512,
+      code: lambda.Code.fromAsset(join(__dirname,
+        '../resources/monster-draft-handlers/main-draft-handler/target/main-draft-handler.jar')),
+      snapStart: lambda.SnapStartConf.ON_PUBLISHED_VERSIONS,
+    });
+    websocketSessionsTable.grantReadWriteData(mainDraftHandler);
+    draftTable.grantReadWriteData(mainDraftHandler);
+    draftQueue.grantConsumeMessages(mainDraftHandler);
+    draftQueue.grantSendMessages(mainDraftHandler); // needed for self-requeue with delayed visibility
+
+    const mainDraftHandlerVersion = mainDraftHandler.currentVersion;
+    this.mainDraftHandlerAlias = new lambda.Alias(this, 'MainDraftHandlerAlias', {
+      aliasName: 'MainDraftHandlerAlias',
+      version: mainDraftHandlerVersion,
+    });
+
+    // Attach the SQS event source to the alias so that SnapStart applies.
+    // SnapStart only activates on aliased invocations, not on the function directly.
+    this.mainDraftHandlerAlias.addEventSource(new lambdaEventSources.SqsEventSource(draftQueue, {
+      batchSize: 10,
+      reportBatchItemFailures: true, // pairs with SQSBatchResponse return type
+    }));
   }
 }

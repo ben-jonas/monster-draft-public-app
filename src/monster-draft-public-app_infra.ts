@@ -12,11 +12,13 @@ const dataStack = new MonsterDraftPublicAppDataStack(app, 'MonsterCubeDraftPubli
 const lambdaStack = new MonsterDraftPublicAppLambdaStack(app, 'MonsterCubeDraftPublicAppLambdaStack', {
   env,
   websocketSessionsTable: dataStack.websocketSessionsTable,
-  draftTable: dataStack.draftTable
+  draftTable: dataStack.draftTable,
+  draftQueue: dataStack.draftQueue,
 });
 
 new MonsterDraftPublicAppApiStack(app, 'MonsterCubeDraftPublicAppApiStack', {
   env,
   createLobbyHandlerDevAlias: lambdaStack.createLobbyHandlerAlias,
   openWebsocketConnectionHandlerDevAlias: lambdaStack.openWebsocketConnectionHandlerAlias,
+  draftQueue: dataStack.draftQueue,
 });
