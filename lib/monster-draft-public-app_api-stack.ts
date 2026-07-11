@@ -99,6 +99,8 @@ export class MonsterDraftPublicAppApiStack extends cdk.Stack {
         '}' +
       '}';
 
+    // Everything but $connect/$disconnect goes through the queue to the MainDraftHandler and is evaluated there; hence
+    // the static routeSelectionExpression.
     const mainDraftApi = new apigwv2.WebSocketApi(this, 'MonsterCubeDraftMainDraftApi', {
       routeSelectionExpression: '\\$default',
       connectRouteOptions: {
@@ -108,16 +110,12 @@ export class MonsterDraftPublicAppApiStack extends cdk.Stack {
         ),
       },
       disconnectRouteOptions: {
-        // $disconnect is intentionally a no-op. Session cleanup is handled
-        // lazily: stale connection IDs are detected via GoneException when the
-        // server tries to push to them, and session records expire via DynamoDB TTL.
+        // $disconnect is intentionally a no-op. Session cleanup is handled lazily: stale connection IDs are detected via
+        // GoneException when the server tries to push to them, and session records expire via DynamoDB TTL.
         integration: new WebSocketMockIntegration('DevDisconnectIntegration'),
       },
     });
 
-    // $default route with returnResponse: true so APIGW returns a 200 to the
-    // client after the SQS send completes, rather than a 404 (which is what
-    // non-proxy AWS integrations return when no route response is configured).
     const defaultRoute = mainDraftApi.addRoute('$default', {
       integration: new WebSocketAwsIntegration('DefaultSqsIntegration', {
         integrationUri: `arn:aws:apigateway:${this.region}:sqs:path/${this.account}/${draftQueue.queueName}`,
@@ -135,12 +133,10 @@ export class MonsterDraftPublicAppApiStack extends cdk.Stack {
       returnResponse: true,
     });
 
-    // Integration response: passes the raw SQS response through to the
-    // WebSocket client with no transformation. Required for non-proxy AWS
-    // integrations — without this APIGW cannot return any response and gives 500.
-    // CDK already adds a CfnRouteResponse when returnResponse == true, so we only
-    // need the CfnIntegrationResponse here. The integration ID is read from the
-    // CfnRoute child's target, which is of the form "integrations/<id>".
+    // Integration response: passes the raw SQS response through to the WebSocket client with no transformation.
+    // Required for non-proxy AWS integrations — without this APIGW cannot return any response and gives 500. CDK already
+    // adds a CfnRouteResponse when returnResponse == true, so we only need the CfnIntegrationResponse here. The
+    // integration ID is read from the CfnRoute child's target, which is of the form "integrations/<id>".
     const defaultCfnRoute = defaultRoute.node.findChild('Resource') as apigwv2.CfnRoute;
     const defaultIntegrationId = cdk.Fn.select(1, cdk.Fn.split('/', defaultCfnRoute.target as string));
 
