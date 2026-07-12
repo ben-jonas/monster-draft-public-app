@@ -3,6 +3,7 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
 import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import { join } from 'path';
 import { Construct } from 'constructs';
 
@@ -87,6 +88,15 @@ export class MonsterDraftPublicAppLambdaStack extends cdk.Stack {
     draftTable.grantReadWriteData(mainDraftHandler);
     draftQueue.grantConsumeMessages(mainDraftHandler);
     draftQueue.grantSendMessages(mainDraftHandler); // needed for self-requeue with delayed visibility
+
+    // Lets MainDraftHandler push messages back to WebSocket clients (e.g. delivery acks).
+    // Scoped by wildcard rather than to a specific API: the WebSocket API is created in the API
+    // stack, which already depends on this stack for the Lambda alias, so importing the API's ARN
+    // here would create a circular stack dependency.
+    mainDraftHandler.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['execute-api:ManageConnections'],
+      resources: [`arn:aws:execute-api:${this.region}:${this.account}:*/*/POST/@connections/*`],
+    }));
 
     const mainDraftHandlerVersion = mainDraftHandler.currentVersion;
     this.mainDraftHandlerAlias = new lambda.Alias(this, 'MainDraftHandlerAlias', {

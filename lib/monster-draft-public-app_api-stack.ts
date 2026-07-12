@@ -87,14 +87,22 @@ export class MonsterDraftPublicAppApiStack extends cdk.Stack {
     draftQueue.grantSendMessages(apigwSqsRole);
 
     // Velocity template for the $default → SQS integration.
-    // Produces envelope: { "source": "APIGW_CLIENT", "item": { "connectionId": "...", "body": "<escaped raw string>" } }
+    // Produces envelope:
+    //   { "source": "APIGW_CLIENT", "item": { "connectionId": "...", "domainName": "...",
+    //     "stage": "...", "body": "<escaped raw string>" } }
     // body is kept as a raw escaped string so that MainDraftHandler owns all JSON parsing.
+    // domainName + stage let MainDraftHandler build the ApiGatewayManagementApi callback endpoint
+    // (https://{domainName}/{stage}) per message without a CDK env var — passing the WebSocket
+    // API's endpoint via env var would create a circular dependency between this stack and the
+    // Lambda stack (see MonsterDraftPublicAppLambdaStack).
     const defaultRouteRequestTemplate =
       'Action=SendMessage' +
       '&MessageBody={' +
         '"source":"APIGW_CLIENT",' +
         '"item":{' +
           '"connectionId":"$context.connectionId",' +
+          '"domainName":"$context.domainName",' +
+          '"stage":"$context.stage",' +
           '"body":"$util.escapeJavaScript($input.body)"' +
         '}' +
       '}';
