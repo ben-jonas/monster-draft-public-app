@@ -61,7 +61,7 @@ class WebSocketEndpointResourceTest {
   }
 
   @Test
-  void beforeCheckpoint_primesEndpointWhenSsmSucceeds() throws Exception {
+  void beforeCheckpoint_warmsUpSsmClientWithoutCachingResult() throws Exception {
     when(mockSsmClient.getParameter(any(GetParameterRequest.class)))
         .thenReturn(
             GetParameterResponse.builder()
@@ -70,8 +70,10 @@ class WebSocketEndpointResourceTest {
 
     endpointRsrc.beforeCheckpoint(mockCracContext);
 
+    // beforeCheckpoint must not have cached the value it fetched: endpoint() should still hit SSM
+    // fresh rather than returning a value cached from the checkpoint-time call.
     assertEquals(ENDPOINT, endpointRsrc.endpoint());
-    verify(mockSsmClient, times(1)).getParameter(any(GetParameterRequest.class));
+    verify(mockSsmClient, times(2)).getParameter(any(GetParameterRequest.class));
   }
 
   @Test
