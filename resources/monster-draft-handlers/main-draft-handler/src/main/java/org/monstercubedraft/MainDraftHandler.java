@@ -1,11 +1,10 @@
 package org.monstercubedraft;
 
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.monstercubedraft.crac.WebSocketEndpointResource;
+import org.monstercubedraft.crac.ApiClientResource;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
@@ -17,8 +16,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import software.amazon.awssdk.core.SdkBytes;
-import software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient;
-import software.amazon.awssdk.services.apigatewaymanagementapi.ApiGatewayManagementApiClient;
 import software.amazon.awssdk.services.apigatewaymanagementapi.model.GoneException;
 import software.amazon.awssdk.services.apigatewaymanagementapi.model.PostToConnectionRequest;
 
@@ -29,23 +26,17 @@ public class MainDraftHandler implements RequestHandler<SQSEvent, SQSBatchRespon
   private static final String ACK_MESSAGE = "Received";
 
   private final ObjectMapper jsonMapper;
-  private final WebSocketEndpointResource webSocketEndpointResource;
-
-  // Built lazily from webSocketEndpointResource.endpoint() on first use, then reused across warm
-  // invocations. There's only ever one WebSocket API/stage for this deployment, so one client
-  // suffices — unlike the endpoint lookup itself, this doesn't need to vary per message.
-  private volatile ApiGatewayManagementApiClient managementClient;
+  private final ApiClientResource apiClientResource;
 
   public MainDraftHandler() {
     this(
         new ObjectMapper(),
-        new WebSocketEndpointResource(System.getenv(ENVKEY__WEBSOCKET_CALLBACK_URL_PARAM_NAME)));
+        new ApiClientResource(System.getenv(ENVKEY__WEBSOCKET_CALLBACK_URL_PARAM_NAME)));
   }
 
-  public MainDraftHandler(
-      ObjectMapper jsonMapper, WebSocketEndpointResource webSocketEndpointResource) {
+  public MainDraftHandler(ObjectMapper jsonMapper, ApiClientResource apiClientResource) {
     this.jsonMapper = jsonMapper;
-    this.webSocketEndpointResource = webSocketEndpointResource;
+    this.apiClientResource = apiClientResource;
   }
 
   @Override
@@ -91,31 +82,12 @@ public class MainDraftHandler implements RequestHandler<SQSEvent, SQSBatchRespon
       return;
     }
 
-    managementClient()
+    apiClientResource
+        .managementClient()
         .postToConnection(
             PostToConnectionRequest.builder()
                 .connectionId(connectionId)
                 .data(SdkBytes.fromString(ACK_MESSAGE, StandardCharsets.UTF_8))
                 .build());
-  }
-
-  private ApiGatewayManagementApiClient managementClient() {
-    ApiGatewayManagementApiClient client = managementClient;
-    if (client != null) {
-      return client;
-    }
-    synchronized (this) {
-      if (managementClient == null) {
-        // webSocketEndpointResource.endpoint() blocks/throws on SSM failure by design: if it
-        // throws here, this message is left unacknowledged and reported as a batch item failure
-        // for SQS to retry, rather than this handler silently proceeding without an endpoint.
-        managementClient =
-            ApiGatewayManagementApiClient.builder()
-                .endpointOverride(URI.create(webSocketEndpointResource.endpoint()))
-                .httpClient(UrlConnectionHttpClient.create())
-                .build();
-      }
-      return managementClient;
-    }
   }
 }
