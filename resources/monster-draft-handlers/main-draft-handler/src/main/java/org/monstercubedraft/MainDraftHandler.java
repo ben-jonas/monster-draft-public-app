@@ -1,6 +1,5 @@
 package org.monstercubedraft;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,23 +14,17 @@ import com.amazonaws.services.lambda.runtime.events.SQSEvent.SQSMessage;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.apigatewaymanagementapi.model.GoneException;
-import software.amazon.awssdk.services.apigatewaymanagementapi.model.PostToConnectionRequest;
 
 public class MainDraftHandler implements RequestHandler<SQSEvent, SQSBatchResponse> {
 
-  static final String ENVKEY__WEBSOCKET_CALLBACK_URL_PARAM_NAME =
-      "WEBSOCKET_CALLBACK_URL_PARAM_NAME";
   private static final String ACK_MESSAGE = "Received";
 
   private final ObjectMapper jsonMapper;
   private final ApiClientResource apiClientResource;
 
   public MainDraftHandler() {
-    this(
-        new ObjectMapper(),
-        new ApiClientResource(System.getenv(ENVKEY__WEBSOCKET_CALLBACK_URL_PARAM_NAME)));
+    this(new ObjectMapper(), new ApiClientResource());
   }
 
   public MainDraftHandler(ObjectMapper jsonMapper, ApiClientResource apiClientResource) {
@@ -82,12 +75,6 @@ public class MainDraftHandler implements RequestHandler<SQSEvent, SQSBatchRespon
       return;
     }
 
-    apiClientResource
-        .managementClient()
-        .postToConnection(
-            PostToConnectionRequest.builder()
-                .connectionId(connectionId)
-                .data(SdkBytes.fromString(ACK_MESSAGE, StandardCharsets.UTF_8))
-                .build());
+    apiClientResource.message(connectionId, ACK_MESSAGE);
   }
 }

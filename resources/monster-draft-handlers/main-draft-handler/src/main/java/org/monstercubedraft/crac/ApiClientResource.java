@@ -2,92 +2,73 @@ package org.monstercubedraft.crac;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.Objects;
+import java.util.function.Function;
 
 import org.crac.Context;
 import org.crac.Core;
 import org.crac.Resource;
 
 import software.amazon.awssdk.core.SdkBytes;
-import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient;
 import software.amazon.awssdk.services.apigatewaymanagementapi.ApiGatewayManagementApiClient;
+import software.amazon.awssdk.services.apigatewaymanagementapi.model.GoneException;
+import software.amazon.awssdk.services.apigatewaymanagementapi.model.LimitExceededException;
 import software.amazon.awssdk.services.apigatewaymanagementapi.model.PostToConnectionRequest;
 import software.amazon.awssdk.services.ssm.SsmClient;
 import software.amazon.awssdk.services.ssm.model.GetParameterRequest;
 
 /**
- * Owns MainDraftHandler's SsmClient and the ApiGatewayManagementApiClient used to push messages
- * to WebSocket clients, resolving the latter's endpoint from SSM Parameter Store (published by
- * MonsterDraftPublicAppApiStack).
+ * Encapsulates an SsmClient and associated ApiGatewayManagementApiClient, resolving the latter's
+ * endpoint from SSM Parameter Store (published by MonsterDraftPublicAppApiStack) and exposing
+ * WebSocket pushes through {@link #message(String, String)} rather than handing the client itself
+ * to callers — this lets the resource self-heal a stale client without callers needing to know a
+ * rebuild happened.
  *
  * <p>{@link #beforeCheckpoint} only makes throwaway calls whose results are discarded, to warm up
  * request marshalling / credential resolution / JIT &amp; classloading for both SDK code paths
- * before the snapshot is taken — exactly like {@link DynamoDbClientResource}'s throwaway {@code
- * describeTable} call. It deliberately does not cache anything into {@link #managementClient}:
- * checkpointing happens once, at version-publish time, and its result is frozen into a snapshot
- * that many future execution environments restore from unchanged — including ones spun up long
- * after a later redeploy of the API stack changes the real endpoint (a new snapshot is only taken
- * when this function is itself republished, not when the API stack changes).
+ * before the snapshot is taken.
  *
- * <p>{@link #afterRestore} does the real work — fetch the callback URL from SSM and build the real
- * client from it — and is safe to do eagerly rather than lazily: it runs independently once per
- * restored execution environment (never shared across environments the way a snapshot is), and by
- * the time any real invocation can reach this function, the API stack — which owns both the SQS
- * integration this function is triggered by and the SSM parameter this class reads — must already
- * be deployed. Its fetch is still best-effort (failures are logged, not thrown): {@link
- * #managementClient()} is the load-bearing fallback, lazily resolving and caching on first real
- * use, and throws on failure so a caller processing an SQS message can let it fail and retry
- * rather than silently proceeding without a client.
+ * <p>{@link #afterRestore} fetches the callback URL from SSM and builds the real client from it.
+ * Its fetch is still best-effort; {@link #message(String, String)} is the load-bearing fallback,
+ * building on first real use if {@link #afterRestore} didn't land, and self-healing on later use by
+ * rebuilding from a fresh SSM lookup whenever the current client fails for a reason a rebuild could
+ * plausibly fix.
+ *
+ * <p>Not thread-safe by design; we expect to replace the {@link ApiGatewayManagementApiClient} with
+ * the async client, using a single thread w/ callbacks.
  */
 public class ApiClientResource implements Resource {
 
-  private static final URI WARMUP_ENDPOINT =
-      URI.create("https://apigatewaymanagementapi-warmup.invalid");
-  private static final Duration WARMUP_TIMEOUT = Duration.ofSeconds(2);
+  static final String ENVKEY__WEBSOCKET_CALLBACK_URL_PARAM_NAME =
+      "WEBSOCKET_CALLBACK_URL_PARAM_NAME";
 
+  private static final String WARMUP_ENDPOINT = "https://apigatewaymanagementapi-warmup.invalid";
+
+  private final Function<String, ApiGatewayManagementApiClient> managementClientFactory;
   private final SsmClient ssmClient;
-  private final ApiGatewayManagementApiClient warmupManagementClient;
   private final String parameterName;
-  private volatile ApiGatewayManagementApiClient managementClient;
+  private ApiGatewayManagementApiClient managementClient;
 
-  public ApiClientResource(String parameterName) {
+  public ApiClientResource() {
     this(
+        endpoint ->
+            ApiGatewayManagementApiClient.builder()
+                .endpointOverride(URI.create(endpoint))
+                .httpClient(UrlConnectionHttpClient.create())
+                .build(),
         SsmClient.builder().httpClient(UrlConnectionHttpClient.create()).build(),
-        buildWarmupManagementClient(),
-        parameterName);
+        System.getenv(ENVKEY__WEBSOCKET_CALLBACK_URL_PARAM_NAME));
   }
 
   public ApiClientResource(
+      Function<String, ApiGatewayManagementApiClient> managementClientFactory,
       SsmClient ssmClient,
-      ApiGatewayManagementApiClient warmupManagementClient,
       String parameterName) {
+    this.managementClientFactory = Objects.requireNonNull(managementClientFactory);
     this.ssmClient = Objects.requireNonNull(ssmClient);
-    this.warmupManagementClient = Objects.requireNonNull(warmupManagementClient);
     this.parameterName = Objects.requireNonNull(parameterName);
     Core.getGlobalContext().register(this);
-  }
-
-  // Points at a hostname reserved by RFC 2606 to never resolve, so building/using this client
-  // can't accidentally reach a real service. Short timeouts are checkpoint-latency insurance on
-  // top of that, not a substitute for it (DNS resolution isn't reliably bounded by these
-  // timeouts on every JVM/OS combination) — the class it's used from only calls it inside a
-  // try/catch, and it's never used for anything but this warm-up.
-  private static ApiGatewayManagementApiClient buildWarmupManagementClient() {
-    return ApiGatewayManagementApiClient.builder()
-        .endpointOverride(WARMUP_ENDPOINT)
-        .httpClient(
-            UrlConnectionHttpClient.builder()
-                .connectionTimeout(WARMUP_TIMEOUT)
-                .socketTimeout(WARMUP_TIMEOUT)
-                .build())
-        .overrideConfiguration(
-            ClientOverrideConfiguration.builder()
-                .apiCallTimeout(WARMUP_TIMEOUT)
-                .apiCallAttemptTimeout(WARMUP_TIMEOUT)
-                .build())
-        .build();
   }
 
   @Override
@@ -99,43 +80,68 @@ public class ApiClientResource implements Resource {
   @Override
   public void afterRestore(Context<? extends Resource> context) throws Exception {
     try {
-      managementClient = buildManagementClient();
+      managementClient = fetchAndBuildClient();
     } catch (Exception e) {
-      // Best-effort; see class javadoc. managementClient() retries on first real use if this
-      // didn't land.
+      // Best-effort; see class javadoc. message() retries on first real use if this didn't land.
       System.out.println(
           "Could not eagerly resolve WebSocket callback endpoint during restore: " + e);
     }
   }
 
   /**
-   * Returns the cached ApiGatewayManagementApiClient, blocking to resolve and build it on first
-   * call if {@link #afterRestore} didn't already populate it. Throws if SSM is unreachable or the
-   * parameter is missing.
+   * Pushes {@code message} to the WebSocket connection identified by {@code wsConnectionId}.
+   *
+   * <p>If the current client throws something other than {@link GoneException} or {@link
+   * LimitExceededException}, this fetches a fresh endpoint from SSM, builds a new client, and
+   * retries once. A successful retry replaces the cached client so subsequent calls skip straight
+   * to it. A failed retry re-throws the original exception from the cached client, not whatever the
+   * retry itself failed with.
    */
-  public ApiGatewayManagementApiClient managementClient() {
+  public void message(String wsConnectionId, String message) {
     ApiGatewayManagementApiClient client = managementClient;
-    if (client != null) {
-      return client;
+    if (client == null) {
+      // Not primed by afterRestore. No existing client to fall back to, so this throws directly
+      // on failure rather than into the rethrow-original-exception path below.
+      client = fetchAndBuildClient();
+      managementClient = client;
     }
-    synchronized (this) {
-      if (managementClient == null) {
-        managementClient = buildManagementClient();
+
+    try {
+      postToConnection(client, wsConnectionId, message);
+    } catch (GoneException | LimitExceededException e) {
+      throw e;
+    } catch (Exception original) {
+      ApiGatewayManagementApiClient rebuilt;
+      try {
+        rebuilt = fetchAndBuildClient();
+        postToConnection(rebuilt, wsConnectionId, message);
+      } catch (Exception retryFailure) {
+        System.out.println(
+            "Failed to post to APIGW with existing client; "
+                + "failed to self-heal with new APIGW mgmt client.");
+        throw original;
       }
-      return managementClient;
+      managementClient = rebuilt;
+      System.out.println("Replaced current APIGW mgmt client w/ new client.");
     }
   }
 
-  private ApiGatewayManagementApiClient buildManagementClient() {
+  private void postToConnection(
+      ApiGatewayManagementApiClient client, String wsConnectionId, String message) {
+    client.postToConnection(
+        PostToConnectionRequest.builder()
+            .connectionId(wsConnectionId)
+            .data(SdkBytes.fromString(message, StandardCharsets.UTF_8))
+            .build());
+  }
+
+  private ApiGatewayManagementApiClient fetchAndBuildClient() {
     String endpoint =
         ssmClient
             .getParameter(GetParameterRequest.builder().name(parameterName).build())
             .parameter()
             .value();
-    return ApiGatewayManagementApiClient.builder()
-        .endpointOverride(URI.create(endpoint))
-        .httpClient(UrlConnectionHttpClient.create())
-        .build();
+    return managementClientFactory.apply(endpoint);
   }
 
   private void warmUpSsmClient() {
@@ -143,22 +149,23 @@ public class ApiClientResource implements Resource {
       // Result discarded — see class javadoc.
       ssmClient.getParameter(GetParameterRequest.builder().name(parameterName).build());
     } catch (Exception e) {
-      System.out.println("Could not warm up SSM client during checkpoint: " + e);
+      System.out.println("Task failed successfully; loaded SsmClient class for beforeCheckpoint()");
     }
   }
 
   private void warmUpManagementClient() {
     try {
-      // Result discarded — see class javadoc. Building the client/request and attempting the call
-      // is what loads the apigatewaymanagementapi classes and JITs the marshalling/signing path;
-      // reaching a real endpoint isn't the point, so there's no reason to make this cleverer.
-      warmupManagementClient.postToConnection(
-          PostToConnectionRequest.builder()
-              .connectionId("warmup")
-              .data(SdkBytes.fromString("", StandardCharsets.UTF_8))
-              .build());
+      // Result discarded — see class javadoc.
+      managementClientFactory
+          .apply(WARMUP_ENDPOINT)
+          .postToConnection(
+              PostToConnectionRequest.builder()
+                  .connectionId("warmup")
+                  .data(SdkBytes.fromString("", StandardCharsets.UTF_8))
+                  .build());
     } catch (Exception e) {
-      System.out.println("Could not warm up ApiGatewayManagementApiClient during checkpoint: " + e);
+      System.out.println(
+          "Task failed successfully; loaded ApiGatewayManagementApiClient for beforeCheckpoint()");
     }
   }
 }
