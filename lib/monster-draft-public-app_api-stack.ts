@@ -93,10 +93,6 @@ export class MonsterDraftPublicAppApiStack extends cdk.Stack {
     // Velocity template for the $default → SQS integration.
     // Produces envelope: { "source": "APIGW_CLIENT", "item": { "connectionId": "...", "body": "<escaped raw string>" } }
     // body is kept as a raw escaped string so that MainDraftHandler owns all JSON parsing.
-    // MainDraftHandler's WebSocket callback endpoint (needed to push acks/messages back to
-    // clients) is published to SSM below rather than carried per-message — see the
-    // WEBSOCKET_CALLBACK_URL_PARAM_NAME parameter and MonsterDraftPublicAppLambdaStack's
-    // ssm:GetParameter grant.
     const defaultRouteRequestTemplate =
       'Action=SendMessage' +
       '&MessageBody={' +
@@ -160,15 +156,7 @@ export class MonsterDraftPublicAppApiStack extends cdk.Stack {
       autoDeploy: true
     });
 
-    // Grants MainDraftHandler execute-api:ManageConnections, scoped to exactly this API + stage.
-    // Deliberately NOT mainDraftApi.grantManageConnections(mainDraftHandlerDevAlias) or
-    // mainDraftHandlerDevAlias.role.addToPrincipalPolicy(...): both attach the statement to the
-    // role's own default policy, which is synthesized in the Lambda stack. Since that stack already
-    // has this stack depending on it (for the alias), a policy statement there referencing
-    // mainDraftApi.apiId would force the Lambda stack to import from this one — a circular stack
-    // dependency. A standalone iam.Policy here, attached to the role via `roles`, keeps the new
-    // AWS::IAM::Policy resource (and the only reference to mainDraftApi.apiId) in this stack, while
-    // the role reference flows in the same direction this stack already depends in.
+    // Give MainDraftHandler access to the "connections" Websocket Mgmt URI so it can push messages to clients.
     new iam.Policy(this, 'MainDraftHandlerManageConnectionsPolicy', {
       statements: [
         new iam.PolicyStatement({
@@ -181,16 +169,8 @@ export class MonsterDraftPublicAppApiStack extends cdk.Stack {
       roles: [mainDraftHandlerDevAlias.role!],
     });
 
-    // Publishes MainDraftHandler's WebSocket callback endpoint for it to read at runtime (see
-    // WebSocketEndpointResource in main-draft-handler). Written declaratively here rather than via
-    // a custom resource mutating the Lambda's environment directly: env vars are a single property
-    // blob owned by the Function resource in the Lambda stack, so setting them from here would hit
-    // the same circular-dependency problem the IAM policy above avoids, and an out-of-band mutation
-    // (e.g. AwsCustomResource calling UpdateFunctionConfiguration) would get silently overwritten by
-    // CloudFormation on the Lambda stack's next deploy. An SSM parameter is a first-class resource
-    // with no such drift risk; MainDraftHandler is granted read access via
-    // WEBSOCKET_CALLBACK_URL_PARAM_NAME (see MonsterDraftPublicAppLambdaStack), using the same
-    // hardcoded-name convention (no CDK token) that keeps that grant acyclic too.
+    // Publishes MainDraftHandler's WebSocket callback endpoint for it to read at runtime. If this Stack is deleted and
+    // rebuilt, the Lambda stack can remain unchanged, and will discover the new callback endpoint via this parameter.
     new ssm.StringParameter(this, 'MainDraftHandlerCallbackUrlParam', {
       parameterName: WEBSOCKET_CALLBACK_URL_PARAM_NAME,
       stringValue: _draftDevStage.callbackUrl,
