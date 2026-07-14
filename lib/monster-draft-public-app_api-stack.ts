@@ -4,6 +4,7 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as ssm from 'aws-cdk-lib/aws-ssm';
 import { Construct } from 'constructs';
 import {
   HttpLambdaIntegration,
@@ -11,11 +12,13 @@ import {
   WebSocketAwsIntegration,
   WebSocketMockIntegration,
 } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
+import { WEBSOCKET_CALLBACK_URL_PARAM_NAME } from './constants';
 
 
 export interface MonsterDraftPublicAppApiStackProps extends cdk.StackProps {
   createLobbyHandlerDevAlias: lambda.Alias,
   openWebsocketConnectionHandlerDevAlias: lambda.Alias,
+  mainDraftHandlerDevAlias: lambda.Alias,
   draftQueue: sqs.Queue,
 }
 
@@ -28,6 +31,7 @@ export class MonsterDraftPublicAppApiStack extends cdk.Stack {
     const {
       createLobbyHandlerDevAlias,
       openWebsocketConnectionHandlerDevAlias,
+      mainDraftHandlerDevAlias,
       draftQueue,
     } = props;
 
@@ -150,6 +154,26 @@ export class MonsterDraftPublicAppApiStack extends cdk.Stack {
       webSocketApi: mainDraftApi,
       stageName: 'dev',
       autoDeploy: true
+    });
+
+    // Give MainDraftHandler access to the "connections" Websocket Mgmt URI so it can push messages to clients.
+    new iam.Policy(this, 'MainDraftHandlerManageConnectionsPolicy', {
+      statements: [
+        new iam.PolicyStatement({
+          actions: ['execute-api:ManageConnections'],
+          resources: [
+            `${this.formatArn({ service: 'execute-api', resource: mainDraftApi.apiId })}/${_draftDevStage.stageName}/*/@connections/*`,
+          ],
+        }),
+      ],
+      roles: [mainDraftHandlerDevAlias.role!],
+    });
+
+    // Publishes MainDraftHandler's WebSocket callback endpoint for it to read at runtime. If this Stack is deleted and
+    // rebuilt, the Lambda stack can remain unchanged, and will discover the new callback endpoint via this parameter.
+    new ssm.StringParameter(this, 'MainDraftHandlerCallbackUrlParam', {
+      parameterName: WEBSOCKET_CALLBACK_URL_PARAM_NAME,
+      stringValue: _draftDevStage.callbackUrl,
     });
 
     const mainDraftApiLogFormat = [

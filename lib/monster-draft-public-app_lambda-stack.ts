@@ -3,8 +3,10 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
 import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import { join } from 'path';
 import { Construct } from 'constructs';
+import { WEBSOCKET_CALLBACK_URL_PARAM_NAME } from './constants';
 
 export interface MonsterDraftPublicAppLambdaStackProps extends cdk.StackProps {
   websocketSessionsTable: dynamodb.TableV2,
@@ -76,6 +78,7 @@ export class MonsterDraftPublicAppLambdaStack extends cdk.Stack {
         WSCONNECTIONS_TABLE_NAME: websocketSessionsTable.tableName,
         GAME_TABLE_NAME: draftTable.tableName,
         DRAFT_QUEUE_URL: draftQueue.queueUrl,
+        WEBSOCKET_CALLBACK_URL_PARAM_NAME: WEBSOCKET_CALLBACK_URL_PARAM_NAME,
       },
       timeout: cdk.Duration.seconds(28), // must be less than queue visibility timeout (30s)
       memorySize: 512,
@@ -87,6 +90,18 @@ export class MonsterDraftPublicAppLambdaStack extends cdk.Stack {
     draftTable.grantReadWriteData(mainDraftHandler);
     draftQueue.grantConsumeMessages(mainDraftHandler);
     draftQueue.grantSendMessages(mainDraftHandler); // needed for self-requeue with delayed visibility
+
+    // To push msgs to clients, MainDraftHandler must get the proper WebSocket callback URI from SSM (see 
+    // WebSocketEndpointResource in main-draft-handler and the SSM parameter published in the API stack).
+    // (The API stack publishes this value to SSM after creating the API.)
+    mainDraftHandler.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['ssm:GetParameter'],
+      resources: [`arn:aws:ssm:${this.region}:${this.account}:parameter${WEBSOCKET_CALLBACK_URL_PARAM_NAME}`],
+    }));
+
+    // (MainDraftHandler also needs execute-api:ManageConnections to push messages to clients via the URI
+    // discussed above; that permission is granted from within the API stack, via a standalone iam.Policy
+    // attached to mainDraftHandlerAlias.role.)
 
     const mainDraftHandlerVersion = mainDraftHandler.currentVersion;
     this.mainDraftHandlerAlias = new lambda.Alias(this, 'MainDraftHandlerAlias', {

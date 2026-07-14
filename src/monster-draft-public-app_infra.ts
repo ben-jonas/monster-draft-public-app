@@ -20,5 +20,6 @@ new MonsterDraftPublicAppApiStack(app, 'MonsterCubeDraftPublicAppApiStack', {
   env,
   createLobbyHandlerDevAlias: lambdaStack.createLobbyHandlerAlias,
   openWebsocketConnectionHandlerDevAlias: lambdaStack.openWebsocketConnectionHandlerAlias,
+  mainDraftHandlerDevAlias: lambdaStack.mainDraftHandlerAlias,
   draftQueue: dataStack.draftQueue,
 });
