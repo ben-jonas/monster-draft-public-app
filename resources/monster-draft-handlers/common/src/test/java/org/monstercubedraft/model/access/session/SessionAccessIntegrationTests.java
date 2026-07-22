@@ -2,6 +2,7 @@ package org.monstercubedraft.model.access.session;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +51,8 @@ public class SessionAccessIntegrationTests {
         .putSession(SOME_SESSION_ID, testWebsocketConnectionId, ZonedDateTime.now().plusHours(1))
         .writeTo(dynamoDbClient);
 
+    waitForEventualConsistency();
+
     Map<String, AttributeValue> item =
         sessionTableAccess
             .onPartition(SOME_DRAFT_ID)
@@ -63,7 +66,7 @@ public class SessionAccessIntegrationTests {
 
   @Test
   void putInAndQueryMultipleSessionIds() {
-    String testWebsocketConnectionId = "someWsConn=";
+    String testWebsocketConnectionId = "WsConn" + Instant.now().getEpochSecond() + "==";
     for (int i = 0; i < 8; i++) {
       SessionId iSessionId = new SessionId("teztTEZT0" + i);
       sessionTableAccess
@@ -72,6 +75,8 @@ public class SessionAccessIntegrationTests {
           .writeTo(dynamoDbClient);
     }
 
+    waitForEventualConsistency();
+
     List<Map<String, AttributeValue>> items =
         sessionTableAccess.onPartition(SOME_DRAFT_ID).queryAll().queryFrom(dynamoDbClient).items();
 
@@ -79,6 +84,27 @@ public class SessionAccessIntegrationTests {
     for (var item : items) {
       assertThat(item.get(SessionTableConstants.K_WS_CONNECTION_ID).s())
           .isEqualTo(testWebsocketConnectionId);
+    }
+
+    items =
+        sessionTableAccess
+            .onGsi_WsConnectionId(testWebsocketConnectionId)
+            .queryAll()
+            .queryFrom(dynamoDbClient)
+            .items();
+
+    // realistically, the websocketConnectionId should be unique. However, we inserted eight records
+    // with the same wsConnectionId so we get eight in this index query.
+    assertThat(items.size()).isEqualTo(8);
+    for (var item : items) {
+      assertThat(item.get(SessionTableConstants.SK_SESSION_ID).s()).startsWith("teztTEZT0");
+    }
+  }
+
+  void waitForEventualConsistency() {
+    try {
+      Thread.sleep(200);
+    } catch (InterruptedException e) {
     }
   }
 }
