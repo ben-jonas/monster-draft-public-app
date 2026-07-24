@@ -43,7 +43,7 @@ public abstract class FixedLengthCharsetRestrictedTextType {
 
     FixedLengthCharsetRestrictedTextType castObj = (FixedLengthCharsetRestrictedTextType) obj;
 
-    return this.s == castObj.s;
+    return this.s.equals(castObj.s);
   }
 
   @Override

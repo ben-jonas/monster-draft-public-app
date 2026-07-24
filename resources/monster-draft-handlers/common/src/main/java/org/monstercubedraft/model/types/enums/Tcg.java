@@ -1,4 +1,4 @@
-package org.monstercubedraft.model.types;
+package org.monstercubedraft.model.types.enums;
 
 public enum Tcg {
   PKMN,

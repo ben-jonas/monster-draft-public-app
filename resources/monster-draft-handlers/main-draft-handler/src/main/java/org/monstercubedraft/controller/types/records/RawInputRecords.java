@@ -1,4 +1,4 @@
-package org.monstercubedraft.controller.types;
+package org.monstercubedraft.controller.types.records;
 
 import org.monstercubedraft.model.types.DraftId;
 

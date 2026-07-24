@@ -1,7 +1,7 @@
-package org.monstercubedraft.controller.types;
+package org.monstercubedraft.controller.types.enums;
 
-import static org.monstercubedraft.controller.types.DraftRequestSource.APIGW_CLIENT;
-import static org.monstercubedraft.controller.types.DraftRequestSource.SERVER;
+import static org.monstercubedraft.controller.types.enums.DraftRequestSource.APIGW_CLIENT;
+import static org.monstercubedraft.controller.types.enums.DraftRequestSource.SERVER;
 
 import java.util.Arrays;
 import java.util.Map;

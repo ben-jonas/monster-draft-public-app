@@ -9,18 +9,19 @@ import java.util.function.Function;
 
 import javax.naming.LimitExceededException;
 
-import org.monstercubedraft.controller.DraftCommandParser.ParseCommandException;
-import org.monstercubedraft.controller.types.DraftCommand;
-import org.monstercubedraft.controller.types.DraftRequestSource;
-import org.monstercubedraft.controller.types.RawInputRecords.RawServerSentMessage;
-import org.monstercubedraft.controller.types.RawInputRecords.RawWebsocketClientMessage;
+import org.monstercubedraft.DraftCommandParser;
+import org.monstercubedraft.DraftCommandParser.ParseCommandException;
+import org.monstercubedraft.controller.types.enums.DraftRequestSource;
+import org.monstercubedraft.controller.types.records.DraftCommand;
+import org.monstercubedraft.controller.types.records.RawInputRecords.RawServerSentMessage;
+import org.monstercubedraft.controller.types.records.RawInputRecords.RawWebsocketClientMessage;
 import org.monstercubedraft.crac.AwsAsyncClientsResource;
 import org.monstercubedraft.model.access.draft.DraftTableAccess;
 import org.monstercubedraft.model.access.session.SessionTableAccess;
 import org.monstercubedraft.model.constants.SessionTableConstants;
 import org.monstercubedraft.model.types.DraftId;
-import org.monstercubedraft.model.types.DraftSession;
 import org.monstercubedraft.model.types.SessionId;
+import org.monstercubedraft.model.types.records.DraftSession;
 
 import com.amazonaws.services.lambda.runtime.events.SQSEvent.SQSMessage;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -38,28 +39,30 @@ import software.amazon.awssdk.services.dynamodb.model.QueryRequest;
 
 public class DraftAsyncController {
 
-  private final AwsAsyncClientsResource awsSdkClients;
-  private final ObjectMapper objectMapper;
-  private final DraftCommandParser commandParser;
-  private final DraftTableAccess draftTableAccess;
-  private final SessionTableAccess sessionTableAccess;
+  /* Package-scoped because this is tightly coupled to the ephemeral Workflow classes, which are
+   * instantiated per-request, and take the entire Services record as a constructor arg*/
+  static record Services(
+      AwsAsyncClientsResource awsSdkAsyncClients,
+      ObjectMapper objectMapper,
+      DraftCommandParser draftCommandParser,
+      DraftTableAccess draftTableAccess,
+      SessionTableAccess sessionTableAccess) {}
+
+  private final Services services;
 
   public DraftAsyncController(
-      AwsAsyncClientsResource clients,
+      AwsAsyncClientsResource awsSdkAsyncClients,
       ObjectMapper mapper,
       DraftCommandParser parser,
       DraftTableAccess draftTableAccess,
       SessionTableAccess sessionTableAccess) {
-    this.awsSdkClients = clients;
-    this.objectMapper = mapper;
-    this.commandParser = parser;
-    this.draftTableAccess = draftTableAccess;
-    this.sessionTableAccess = sessionTableAccess;
+    this.services =
+        new Services(awsSdkAsyncClients, mapper, parser, draftTableAccess, sessionTableAccess);
   }
 
   public CompletableFuture<Void> handleSQSMessage(SQSMessage message)
       throws JsonMappingException, JsonProcessingException {
-    JsonNode jsonBase = objectMapper.readTree(message.getBody());
+    JsonNode jsonBase = services.objectMapper.readTree(message.getBody());
     DraftRequestSource source =
         DraftRequestSource.fromSourceString(jsonBase.required("source").asText());
     JsonNode jsonItem = jsonBase.required("item");
@@ -101,7 +104,7 @@ public class DraftAsyncController {
     CompletableFuture<Void> startWorkflowAsync() {
       return CompletableFuture.supplyAsync(
               () -> {
-                return commandParser.parse(clientMessage);
+                return services.draftCommandParser.parse(clientMessage);
               })
           .handle(
               (command, ex) -> {
@@ -148,7 +151,8 @@ public class DraftAsyncController {
     }
 
     private CompletableFuture<Void> notifyWsClient(String message) {
-      return awsSdkClients
+      return services
+          .awsSdkAsyncClients
           .supplyApiGwMgmtApi()
           .get()
           .postToConnection(
@@ -166,7 +170,7 @@ public class DraftAsyncController {
                   if (cause instanceof ApiGatewayManagementApiException
                       && !(cause instanceof GoneException)
                       && !(cause instanceof LimitExceededException)) {
-                    awsSdkClients.refreshApiGwMgmtApiAsyncClient();
+                    services.awsSdkAsyncClients.refreshApiGwMgmtApiAsyncClient();
                   }
                 }
                 return null;
@@ -175,11 +179,13 @@ public class DraftAsyncController {
 
     private CompletableFuture<Void> populateSessionData() {
       QueryRequest queryForSessionsMatchingWsConnectionId =
-          sessionTableAccess
+          services
+              .sessionTableAccess
               .onGsi_WsConnectionId(clientMessage.wsConnectionId())
               .queryAll()
               .request();
-      return awsSdkClients
+      return services
+          .awsSdkAsyncClients
           .getDynamo()
           .query(queryForSessionsMatchingWsConnectionId)
           .thenAccept(

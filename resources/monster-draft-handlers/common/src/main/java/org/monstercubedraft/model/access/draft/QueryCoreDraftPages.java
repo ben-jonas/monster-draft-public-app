@@ -9,7 +9,7 @@ import java.util.Map;
 
 import org.monstercubedraft.model.access.ReadItemsPattern;
 import org.monstercubedraft.model.types.DraftId;
-import org.monstercubedraft.model.types.DraftPage;
+import org.monstercubedraft.model.types.enums.DraftPageName;
 
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.QueryRequest;
@@ -35,7 +35,7 @@ public class QueryCoreDraftPages implements ReadItemsPattern<QueryRequest, Query
         .expressionAttributeValues(
             Map.of(
                 ":namespace",
-                fromS(DraftPage.INDEX.getNamespace()),
+                fromS(DraftPageName.INDEX.getNamespace()),
                 ":draftId",
                 fromS(draftId.toString())))
         .build();

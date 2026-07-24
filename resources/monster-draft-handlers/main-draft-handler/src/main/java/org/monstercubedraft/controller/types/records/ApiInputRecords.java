@@ -1,4 +1,4 @@
-package org.monstercubedraft.controller.types;
+package org.monstercubedraft.controller.types.records;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;

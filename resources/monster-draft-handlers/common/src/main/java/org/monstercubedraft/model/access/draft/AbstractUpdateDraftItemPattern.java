@@ -10,7 +10,7 @@ import java.util.Map;
 
 import org.monstercubedraft.model.access.WriteItemPattern;
 import org.monstercubedraft.model.types.DraftId;
-import org.monstercubedraft.model.types.DraftPage;
+import org.monstercubedraft.model.types.enums.DraftPageName;
 
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
@@ -28,7 +28,7 @@ public abstract class AbstractUpdateDraftItemPattern
     this.draftId = draftId;
   }
 
-  protected abstract DraftPage page();
+  protected abstract DraftPageName page();
 
   protected abstract String updateExpression();
 

@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.monstercubedraft.model.types.DraftId;
-import org.monstercubedraft.model.types.DraftPage;
+import org.monstercubedraft.model.types.enums.DraftPageName;
 
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
@@ -41,7 +41,7 @@ public class PutDraftData0Page extends AbstractPutDraftItemPattern {
   @Override
   public PutItemRequest request() {
     Map<String, AttributeValue> da0PgItem =
-        Utils.makeItemWithCommonFields(draftId.toString(), DraftPage.DATA0, timeToLive);
+        Utils.makeItemWithCommonFields(draftId.toString(), DraftPageName.DATA0, timeToLive);
     da0PgItem.put(K_TIME_LIMIT_SCHEME, fromS("NONE"));
     da0PgItem.put(K_IS_INITIALIZED, fromBool(false));
 

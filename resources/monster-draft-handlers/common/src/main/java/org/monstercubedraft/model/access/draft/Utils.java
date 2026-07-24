@@ -1,8 +1,8 @@
 package org.monstercubedraft.model.access.draft;
 
 import static org.monstercubedraft.model.constants.DraftTableConstants.ACTIVE_SCHEMA_VERSION;
-import static org.monstercubedraft.model.constants.DraftTableConstants.K_TTL;
 import static org.monstercubedraft.model.constants.DraftTableConstants.K_DRAFTTBL_VERSION;
+import static org.monstercubedraft.model.constants.DraftTableConstants.K_TTL;
 import static org.monstercubedraft.model.constants.DraftTableConstants.PK_GAME_ID;
 import static org.monstercubedraft.model.constants.DraftTableConstants.SK_PAGE;
 import static software.amazon.awssdk.services.dynamodb.model.AttributeValue.fromN;
@@ -16,7 +16,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Stream;
 
-import org.monstercubedraft.model.types.DraftPage;
+import org.monstercubedraft.model.types.enums.DraftPageName;
 
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.QueryResponse;
@@ -26,7 +26,7 @@ final class Utils {
   private Utils() {}
 
   static Map<String, AttributeValue> makeItemWithCommonFields(
-      String gameId, DraftPage page, ZonedDateTime timeToLive) {
+      String gameId, DraftPageName page, ZonedDateTime timeToLive) {
     Stream.of(gameId, page, timeToLive).map(Objects::requireNonNull);
     Map<String, AttributeValue> item = new TreeMap<>();
     item.put(PK_GAME_ID, fromS(gameId));

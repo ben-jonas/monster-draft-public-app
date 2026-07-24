@@ -14,9 +14,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.monstercubedraft.model.types.DraftId;
-import org.monstercubedraft.model.types.DraftPage;
 import org.monstercubedraft.model.types.SessionAlias;
 import org.monstercubedraft.model.types.SessionId;
+import org.monstercubedraft.model.types.enums.DraftPageName;
 
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
@@ -33,8 +33,8 @@ public class UpdateDraftAddSession extends AbstractUpdateDraftItemPattern {
   }
 
   @Override
-  protected DraftPage page() {
-    return DraftPage.INDEX;
+  protected DraftPageName page() {
+    return DraftPageName.INDEX;
   }
 
   @Override

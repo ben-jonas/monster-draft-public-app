@@ -142,7 +142,7 @@ allTables:
         _numValues: 8
         _valueBytes: 10 # 3-char session alias = 3B
         _totalBytes: 32
-      init: # Boolean: Is the game started? This should only be set as part of a multi-page transaction
+      init: # Boolean: Is the game started? This should only be set as part of a multi-page transaction. (See //da0.init)
         _fieldNameVals: 4
         _valueBytes: 1
         _totalBytes: 5
@@ -164,7 +164,7 @@ allTables:
         _fieldNameBytes: 14
         _valueBytes: 17 # <'NONE' | 'FLAT_XXXs' | 'DESC_XXXs_TO_XXXs'> = max 17B.
         _totalBytes: 31
-      init: # Boolean: Is the game started? This should only be set as part of a multi-page transaction
+      init: # Denormalized/duplicated from //NDX so we can efficiently reject //da0 configuration changes if the draft has started.
         _fieldNameVals: 4
         _valueBytes: 1
         _totalBytes: 5

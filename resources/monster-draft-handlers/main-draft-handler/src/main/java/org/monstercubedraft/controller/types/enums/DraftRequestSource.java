@@ -1,4 +1,4 @@
-package org.monstercubedraft.controller.types;
+package org.monstercubedraft.controller.types.enums;
 
 import java.util.Arrays;
 import java.util.Map;

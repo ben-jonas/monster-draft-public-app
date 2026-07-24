@@ -7,7 +7,7 @@ import org.monstercubedraft.crac.DynamoDbClientResource;
 import org.monstercubedraft.crac.IdGeneratorResource;
 import org.monstercubedraft.model.access.draft.DraftTableAccess;
 import org.monstercubedraft.model.types.DraftId;
-import org.monstercubedraft.model.types.Tcg;
+import org.monstercubedraft.model.types.enums.Tcg;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
