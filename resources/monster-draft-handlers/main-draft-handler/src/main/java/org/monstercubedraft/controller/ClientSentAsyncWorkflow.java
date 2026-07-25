@@ -13,6 +13,7 @@ import org.monstercubedraft.controller.DraftAsyncController.Services;
 import org.monstercubedraft.controller.types.records.DraftCommand;
 import org.monstercubedraft.controller.types.records.RawInputRecords.RawWebsocketClientMessage;
 import org.monstercubedraft.model.constants.SessionTableConstants;
+import org.monstercubedraft.model.types.DraftCore;
 import org.monstercubedraft.model.types.DraftId;
 import org.monstercubedraft.model.types.SessionId;
 import org.monstercubedraft.model.types.records.DraftSession;
@@ -23,7 +24,6 @@ import software.amazon.awssdk.services.apigatewaymanagementapi.model.GoneExcepti
 import software.amazon.awssdk.services.apigatewaymanagementapi.model.PostToConnectionRequest;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.QueryRequest;
-import software.amazon.awssdk.services.dynamodb.model.QueryResponse;
 
 class ClientSentAsyncWorkflow {
 
@@ -38,7 +38,7 @@ class ClientSentAsyncWorkflow {
   private static class Accumulator {
     private DraftCommand parsedCommand;
     private DraftSession session;
-    private QueryResponse queryResponse;
+    private DraftCore draft;
 
     private Accumulator() {}
 
@@ -54,20 +54,19 @@ class ClientSentAsyncWorkflow {
       return accumulatorOut;
     }
 
-    Accumulator withDraft(QueryResponse queryDraftResponse) {
+    Accumulator withDraft(DraftCore draft) {
       Accumulator accumulatorOut = EMPTY.ingest(this);
-      accumulatorOut.queryResponse = Objects.requireNonNull(queryDraftResponse);
+      accumulatorOut.draft = Objects.requireNonNull(draft);
       return accumulatorOut;
     }
 
     Accumulator ingest(Accumulator other) {
       DraftCommand commandOut = parsedCommand == null ? other.parsedCommand : parsedCommand;
       DraftSession sessionOut = session == null ? other.session : session;
-      QueryResponse queryDraftResponseOut =
-          queryResponse == null ? other.queryResponse : queryResponse;
+      DraftCore draftOut = draft == null ? other.draft : draft;
       var accumulatorOut = new Accumulator(commandOut);
       accumulatorOut.session = sessionOut;
-      accumulatorOut.queryResponse = queryDraftResponseOut;
+      accumulatorOut.draft = draftOut;
       return accumulatorOut;
     }
   }
@@ -220,7 +219,7 @@ class ClientSentAsyncWorkflow {
                     "Table or index setup is wrong; "
                         + "query returned null collection (empty collection would be fine).",
                     String.format("#%s: error fetching session", accumulator.parsedCommand.id()));
-              return accumulator.withDraft(queryResponse);
+              return accumulator.withDraft(new DraftCore(queryResponse));
             });
   }
 }

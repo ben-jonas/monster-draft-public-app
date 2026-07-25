@@ -44,6 +44,7 @@ public class DraftId extends FixedLengthCharsetRestrictedTextType {
     return LENGTH;
   }
 
+  @Override
   public String getApiRepresentation() {
     if (apiRepresentation == null) {
       apiRepresentation =

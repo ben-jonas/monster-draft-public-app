@@ -193,7 +193,7 @@ allTables:
     //da1: # data 1 -- for relatively infrequent writes
       _totalBytes: 1017
       _include.CommonFields: 50
-      pacsBlok: #unopened packs, encoded as a base64 block, each card takes 12 bits
+      pacsBlok: #unopened packs, encoded as a base64 block, 960 cards & each card takes 12 bits
         _fieldNameBytes: 8
         _valueBytes: 720
         _totalBytes: 728
