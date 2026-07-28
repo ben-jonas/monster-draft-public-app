@@ -2,21 +2,23 @@ package org.monstercubedraft.controller;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 import javax.naming.LimitExceededException;
 
-import org.monstercubedraft.DraftCommandParser.ParseCommandException;
 import org.monstercubedraft.controller.DraftAsyncController.Services;
-import org.monstercubedraft.controller.types.records.DraftCommand;
+import org.monstercubedraft.controller.DraftCommandParser.ParseCommandException;
 import org.monstercubedraft.controller.types.records.RawInputRecords.RawWebsocketClientMessage;
 import org.monstercubedraft.model.constants.SessionTableConstants;
 import org.monstercubedraft.model.types.DraftCore;
 import org.monstercubedraft.model.types.DraftId;
 import org.monstercubedraft.model.types.SessionId;
 import org.monstercubedraft.model.types.records.DraftSession;
+import org.monstercubedraft.view.types.ClientViewableDraft;
+import org.monstercubedraft.view.types.records.CommandSuccessResponse;
+
+import com.fasterxml.jackson.core.JacksonException;
 
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.apigatewaymanagementapi.model.ApiGatewayManagementApiException;
@@ -35,42 +37,6 @@ class ClientSentAsyncWorkflow {
     this.clientMessage = clientMessage;
   }
 
-  private static class Accumulator {
-    private DraftCommand parsedCommand;
-    private DraftSession session;
-    private DraftCore draft;
-
-    private Accumulator() {}
-
-    Accumulator(DraftCommand parsedCommand) {
-      this.parsedCommand = Objects.requireNonNull(parsedCommand);
-    }
-
-    public static Accumulator EMPTY = new Accumulator();
-
-    Accumulator withSession(DraftSession session) {
-      Accumulator accumulatorOut = EMPTY.ingest(this);
-      accumulatorOut.session = Objects.requireNonNull(session);
-      return accumulatorOut;
-    }
-
-    Accumulator withDraft(DraftCore draft) {
-      Accumulator accumulatorOut = EMPTY.ingest(this);
-      accumulatorOut.draft = Objects.requireNonNull(draft);
-      return accumulatorOut;
-    }
-
-    Accumulator ingest(Accumulator other) {
-      DraftCommand commandOut = parsedCommand == null ? other.parsedCommand : parsedCommand;
-      DraftSession sessionOut = session == null ? other.session : session;
-      DraftCore draftOut = draft == null ? other.draft : draft;
-      var accumulatorOut = new Accumulator(commandOut);
-      accumulatorOut.session = sessionOut;
-      accumulatorOut.draft = draftOut;
-      return accumulatorOut;
-    }
-  }
-
   CompletableFuture<Void> start() {
     return CompletableFuture.supplyAsync(
             () -> {
@@ -83,10 +49,11 @@ class ClientSentAsyncWorkflow {
                 final var accumulator = new Accumulator(command);
                 future =
                     switch (command.verb()) {
-                      case ACKNOWLEDGE -> notifyWsClient(command.id() + " ack");
+                      case ACKNOWLEDGE ->
+                          notifyWsClientSuccess(new CommandSuccessResponse<>(command.id(), "ack"));
                       case WHO_AM_I -> whoAmI(accumulator);
                       case SET_SELF_AS_LEADER -> CompletableFuture.completedFuture(null);
-                      case GET_VISIBLE_STATE -> CompletableFuture.completedFuture(null);
+                      case GET_VISIBLE_STATE -> getVisibleState(accumulator);
                       case TAKE_SEAT -> CompletableFuture.completedFuture(null);
                       case STAND_UP -> CompletableFuture.completedFuture(null);
                       case READY -> CompletableFuture.completedFuture(null);
@@ -126,15 +93,34 @@ class ClientSentAsyncWorkflow {
         .thenCompose(Function.identity());
   }
 
+  /*command: who_am_i*/
   private CompletableFuture<Void> whoAmI(Accumulator accumulator) {
     return populateSessionData(accumulator)
         .thenCompose(
-            acc ->
-                notifyWsClient(
-                    String.format(
-                        "%s %s", acc.parsedCommand.id(), acc.session.sessionId().toString())));
+            acc -> {
+              CommandSuccessResponse<SessionId> response =
+                  new CommandSuccessResponse<>(acc.getCommand().id(), acc.getSession().sessionId());
+              return notifyWsClientSuccess(response);
+            });
   }
 
+  /*command: get_visible_state*/
+  private CompletableFuture<Void> getVisibleState(Accumulator accumulator) {
+    return populateSessionData(accumulator)
+        .thenCompose(this::populateDraftData)
+        .thenCompose(
+            acc -> {
+              ClientViewableDraft draftView =
+                  controllerServices
+                      .draftConverter()
+                      .viewForClientSession(acc.getDraft(), acc.getSession().sessionId());
+              CommandSuccessResponse<ClientViewableDraft> response =
+                  new CommandSuccessResponse<>(acc.getCommand().id(), draftView);
+              return notifyWsClientSuccess(response);
+            });
+  }
+
+  /*utils*/
   private CompletableFuture<Void> notifyWsClient(String message) {
     return controllerServices
         .awsSdkAsyncClients()
@@ -162,6 +148,15 @@ class ClientSentAsyncWorkflow {
             });
   }
 
+  private CompletableFuture<Void> notifyWsClientSuccess(CommandSuccessResponse<?> response) {
+    try {
+      String responseStr = controllerServices.objectMapper().writeValueAsString(response);
+      return notifyWsClient(responseStr);
+    } catch (JacksonException ex) {
+      throw new WorkflowException(ex, "Serialization failed");
+    }
+  }
+
   private CompletableFuture<Accumulator> populateSessionData(Accumulator accumulator) {
     QueryRequest queryForSessionsMatchingWsConnectionId =
         controllerServices
@@ -179,14 +174,14 @@ class ClientSentAsyncWorkflow {
                 throw new WorkflowException(
                     "Table or index setup is wrong; "
                         + "query returned null collection (empty collection would be fine).",
-                    String.format("#%s: error fetching session", accumulator.parsedCommand.id()));
+                    String.format("#%s: error fetching session", accumulator.getCommand().id()));
               if (queryResponse.items().size() < 1)
                 throw new WorkflowException(
                     "Sessions table doesn't yet have an entry matching this connection; "
                         + "client should wait a short while and retry.",
                     String.format(
                         "#%s: Session not yet populated; wait and retry.",
-                        accumulator.parsedCommand.id()));
+                        accumulator.getCommand().id()));
               if (queryResponse.items().size() > 1)
                 System.out.println(
                     "Ws connection ID was not unique. "
@@ -205,7 +200,7 @@ class ClientSentAsyncWorkflow {
   private CompletableFuture<Accumulator> populateDraftData(Accumulator accumulator) {
     // Note that the session must have been acquired from DynamoDB first, otherwise NPE will be
     // thrown here
-    DraftId draftId = accumulator.session.draftId();
+    DraftId draftId = accumulator.getSession().draftId();
     QueryRequest queryForDraftPages =
         controllerServices.draftTableAccess().onPartition(draftId).queryCorePages().request();
     return controllerServices
@@ -218,7 +213,7 @@ class ClientSentAsyncWorkflow {
                 throw new WorkflowException(
                     "Table or index setup is wrong; "
                         + "query returned null collection (empty collection would be fine).",
-                    String.format("#%s: error fetching session", accumulator.parsedCommand.id()));
+                    String.format("#%s: error fetching session", accumulator.getCommand().id()));
               return accumulator.withDraft(new DraftCore(queryResponse));
             });
   }

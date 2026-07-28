@@ -5,9 +5,11 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import org.monstercubedraft.controller.DraftAsyncController;
+import org.monstercubedraft.controller.DraftCommandParser;
 import org.monstercubedraft.crac.AwsAsyncClientsResource;
 import org.monstercubedraft.model.access.draft.DraftTableAccess;
 import org.monstercubedraft.model.access.session.SessionTableAccess;
+import org.monstercubedraft.view.DraftConverter;
 import org.monstercubedraft.view.json.MonsterDraftObjectMapper;
 
 import com.amazonaws.services.lambda.runtime.Context;
@@ -16,6 +18,7 @@ import com.amazonaws.services.lambda.runtime.events.SQSBatchResponse;
 import com.amazonaws.services.lambda.runtime.events.SQSEvent;
 import com.amazonaws.services.lambda.runtime.events.SQSEvent.SQSMessage;
 import com.fasterxml.jackson.core.JacksonException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class MainDraftHandler implements RequestHandler<SQSEvent, SQSBatchResponse> {
 
@@ -25,13 +28,15 @@ public class MainDraftHandler implements RequestHandler<SQSEvent, SQSBatchRespon
   private final DraftAsyncController controller;
 
   public MainDraftHandler() {
+    ObjectMapper mapper = MonsterDraftObjectMapper.create();
     this(
         new DraftAsyncController(
             new AwsAsyncClientsResource(),
-            MonsterDraftObjectMapper.create(),
+            mapper, // TODO may not need this since it's a dependency of the DraftConverter
             new DraftCommandParser(),
             new DraftTableAccess(System.getenv(ENVKEY__GAME_TABLE_NAME)),
-            new SessionTableAccess(System.getenv(ENVKEY__WSCONNECTIONS_TABLE_NAME))));
+            new SessionTableAccess(System.getenv(ENVKEY__WSCONNECTIONS_TABLE_NAME)),
+            new DraftConverter(mapper)));
   }
 
   public MainDraftHandler(DraftAsyncController controller) {
