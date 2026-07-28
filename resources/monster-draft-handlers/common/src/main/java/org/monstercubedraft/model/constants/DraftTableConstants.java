@@ -10,20 +10,25 @@ public final class DraftTableConstants {
   public static final String K_DRAFTTBL_VERSION = "ver";
 
   // index fields
-  public static final String K_TCG = "tcg";
+  public static final String K_DRAFTNAME = "gamName";
+  public static final String K_PASSWD = "passwd";
   public static final String K_MAXSIZE = "maxSz";
+  public static final String K_TCG = "tcg";
+  public static final String K_LEADER = "leadr";
+  public static final String K_DESCRIPTION = "desc";
   public static final String K_ALIASES_SET = "aliases";
   public static final String K_SESSION_MAP = "sesns";
   public static final String K_PLAYERNAMES_MAP = "playrNames";
-  public static final String K_EXTENSIONS_SET = "xtensns";
-  public static final String K_LEADER = "leadr";
-  public static final String K_SEATED_SET = "seated";
   public static final String K_SEATS_TO_ALIASES_MAP = "seats";
+  public static final String K_SEATED_SET = "seated";
   public static final String K_READY_SET = "ready";
+
+  // denormalized/copied between index & data0
   public static final String K_IS_INITIALIZED = "init";
 
   // "data0" fields
   public static final String K_RULESET_ID = "rulesetId";
+  public static final String K_EXTENSIONS_SET = "xtensns";
   public static final String K_TIME_LIMIT_SCHEME = "timeLimitScheme";
   public static final String K_ROUND_AND_TURN = "roundTurn";
   public static final String K_SEAT0 = "s0";

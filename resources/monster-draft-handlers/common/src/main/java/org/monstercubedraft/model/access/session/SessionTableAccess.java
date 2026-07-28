@@ -54,4 +54,22 @@ public class SessionTableAccess {
   public AccessOnPartition onPartition(DraftId draftId) {
     return new AccessOnPartition(this.tableName, draftId);
   }
+
+  public static class AccessByWsConnectionId {
+    private final String tableName;
+    private final String wsConnectionId;
+
+    private AccessByWsConnectionId(String tableName, String wsConnectionId) {
+      this.tableName = tableName;
+      this.wsConnectionId = requireNonNull(wsConnectionId);
+    }
+
+    public ReadItemsPattern<QueryRequest, QueryResponse> queryAll() {
+      return new QueryAllSessionsForIndexedWebSocketConnectionId(tableName, wsConnectionId);
+    }
+  }
+
+  public AccessByWsConnectionId onGsi_WsConnectionId(String wsConnectionId) {
+    return new AccessByWsConnectionId(this.tableName, wsConnectionId);
+  }
 }

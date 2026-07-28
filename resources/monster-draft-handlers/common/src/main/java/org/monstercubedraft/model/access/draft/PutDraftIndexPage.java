@@ -15,8 +15,8 @@ import java.time.ZonedDateTime;
 import java.util.Map;
 
 import org.monstercubedraft.model.types.DraftId;
-import org.monstercubedraft.model.types.DraftPage;
-import org.monstercubedraft.model.types.Tcg;
+import org.monstercubedraft.model.types.enums.DraftPageName;
+import org.monstercubedraft.model.types.enums.Tcg;
 
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
@@ -37,7 +37,7 @@ public class PutDraftIndexPage extends AbstractPutDraftItemPattern {
   @Override
   public PutItemRequest request() {
     Map<String, AttributeValue> ndxPgItem =
-        Utils.makeItemWithCommonFields(draftId.toString(), DraftPage.INDEX, ttl);
+        Utils.makeItemWithCommonFields(draftId.toString(), DraftPageName.INDEX, ttl);
     ndxPgItem.put(K_TCG, fromS(tcg.name()));
     ndxPgItem.put(K_MAXSIZE, fromN(String.valueOf(numPlayers)));
     ndxPgItem.put(K_SESSION_MAP, fromM(Map.of()));

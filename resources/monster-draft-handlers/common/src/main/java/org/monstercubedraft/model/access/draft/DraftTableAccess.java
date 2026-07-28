@@ -10,7 +10,7 @@ import org.monstercubedraft.model.access.WriteItemPattern;
 import org.monstercubedraft.model.types.DraftId;
 import org.monstercubedraft.model.types.SessionAlias;
 import org.monstercubedraft.model.types.SessionId;
-import org.monstercubedraft.model.types.Tcg;
+import org.monstercubedraft.model.types.enums.Tcg;
 
 import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.PutItemResponse;

@@ -11,10 +11,11 @@ import org.junit.jupiter.api.Test;
 import org.monstercubedraft.model.access.TransactionalWritePattern;
 import org.monstercubedraft.model.access.WriteItemPattern;
 import org.monstercubedraft.model.access.draft.DraftTableAccess.AccessOnPartition;
+import org.monstercubedraft.model.types.DraftCore;
 import org.monstercubedraft.model.types.DraftId;
 import org.monstercubedraft.model.types.SessionAlias;
 import org.monstercubedraft.model.types.SessionId;
-import org.monstercubedraft.model.types.Tcg;
+import org.monstercubedraft.model.types.enums.Tcg;
 
 import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
@@ -54,7 +55,7 @@ public class DraftAccessIntegrationTests {
   @Test
   void initMinimalDraft() {
     // Draft size of 1 and fewest number of writes to get the game to start
-    SessionId leaderSessionId = new SessionId("leaderId00");
+    var leaderSessionId = new SessionId("leaderId00");
     var leaderSessionAlias = new SessionAlias("leA");
     AccessOnPartition testDraftAccess = draftTableAccess.onPartition(SOME_DRAFT_ID);
 
@@ -73,10 +74,44 @@ public class DraftAccessIntegrationTests {
     testDraftAccess.initDraft(SOME_TTL).writeTransactionTo(dynamoDbClient);
 
     QueryResponse q = testDraftAccess.queryCorePages().queryFrom(dynamoDbClient);
+    assertThat(q.items().size()).isEqualTo(4);
+    DraftCore draft = new DraftCore(q);
+    assertThat(draft.getLobby().leader().get()).isEqualTo(leaderSessionId);
+    assertThat(draft.getLobby().isDraftStarted()).isTrue();
   }
 
   @Test
-  void easy() {
+  void initMaximalDraft() {
+    // Draft size of 8
+    AccessOnPartition testDraftAccess = draftTableAccess.onPartition(SOME_DRAFT_ID);
+    testDraftAccess.putIndexPage(Tcg.PKMN, 8, SOME_TTL).writeTo(dynamoDbClient);
+    testDraftAccess.putData0Page(SOME_TTL).writeTo(dynamoDbClient);
+
+    var leaderSessionId = new SessionId("leaderId00");
+    var leaderAlias = new SessionAlias("leA");
+    testDraftAccess.addSession(leaderSessionId, leaderAlias).writeTo(dynamoDbClient);
+    testDraftAccess.setLeader(leaderSessionId).writeTo(dynamoDbClient);
+    testDraftAccess.setRulesetId("someRulesetId").writeTo(dynamoDbClient);
+    testDraftAccess.setTimeLimitScheme("someTimeLimitScheme").writeTo(dynamoDbClient);
+    testDraftAccess.sitDownPlayer(leaderAlias, 0).writeTo(dynamoDbClient);
+    testDraftAccess.readyPlayer(leaderAlias).writeTo(dynamoDbClient);
+    for (int i = 1; i < 8; i++) {
+      var playerSessionId = new SessionId("playerId0" + i);
+      var playerAlias = new SessionAlias("p" + i + "A");
+      testDraftAccess.addSession(playerSessionId, playerAlias).writeTo(dynamoDbClient);
+      testDraftAccess.sitDownPlayer(playerAlias, i).writeTo(dynamoDbClient);
+      testDraftAccess.readyPlayer(playerAlias).writeTo(dynamoDbClient);
+    }
+    testDraftAccess.initDraft(SOME_TTL).writeTransactionTo(dynamoDbClient);
+
+    QueryResponse q = testDraftAccess.queryCorePages().queryFrom(dynamoDbClient);
+    DraftCore draft = new DraftCore(q);
+    assertThat(draft.getLobby().leader().get()).isEqualTo(leaderSessionId);
+    assertThat(draft.getLobby().isDraftStarted()).isTrue();
+  }
+
+  @Test
+  void developDraftThroughWritesToLobbyStage() {
     ZonedDateTime ttlAtStart = ZonedDateTime.now().plusHours(2);
     SessionId leaderSessionId = new SessionId("zezziom1Id");
     SessionAlias leaderSessionAlias = new SessionAlias("s1a");
@@ -138,7 +173,5 @@ public class DraftAccessIntegrationTests {
     dynamoDbClient.transactWriteItems(initDraft.request());
 
     Utils.prettyPrintQueryResponse(dynamoDbClient.query(testItemAccess.queryCorePages().request()));
-
-    assertThat(Boolean.valueOf(true)).isEqualTo(true);
   }
 }

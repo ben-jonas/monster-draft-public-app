@@ -24,6 +24,15 @@ export class MonsterDraftPublicAppDataStack extends cdk.Stack {
       },
       billing: dynamodb.Billing.onDemand(),
     });
+    
+    this.websocketSessionsTable.addGlobalSecondaryIndex({
+      indexName: "SessionsByWsId",
+      partitionKey: {
+        name: "wsConnectionId",
+        type: dynamodb.AttributeType.STRING
+      },
+      projectionType: dynamodb.ProjectionType.ALL
+    });
 
     this.draftTable = new dynamodb.TableV2(this, 'MonsterCubeDraftDraftTable', {
       tableName: "monstercubedraft--dev--DraftTable",

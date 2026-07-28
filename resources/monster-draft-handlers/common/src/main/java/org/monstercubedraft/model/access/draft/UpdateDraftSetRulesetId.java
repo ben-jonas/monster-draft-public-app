@@ -10,7 +10,7 @@ import static software.amazon.awssdk.services.dynamodb.model.AttributeValue.from
 import java.util.Map;
 
 import org.monstercubedraft.model.types.DraftId;
-import org.monstercubedraft.model.types.DraftPage;
+import org.monstercubedraft.model.types.enums.DraftPageName;
 
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
@@ -24,8 +24,8 @@ public class UpdateDraftSetRulesetId extends AbstractUpdateDraftItemPattern {
   }
 
   @Override
-  protected DraftPage page() {
-    return DraftPage.DATA0;
+  protected DraftPageName page() {
+    return DraftPageName.DATA0;
   }
 
   @Override
